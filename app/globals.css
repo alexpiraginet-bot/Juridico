@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/*
+ * Tokens de design do Juridico (modo claro).
+ * Definidos uma única vez aqui e usados nas telas como classes do
+ * Tailwind: bg-superficie, text-tinta, border-borda, bg-status-bom etc.
+ */
+@theme {
+  /* Superfícies */
+  --color-plano: #f9f9f7; /* fundo geral da página */
+  --color-superficie: #fcfcfb; /* cartões, tabelas e painéis */
+  --color-borda: #e1e0d9; /* linhas finas de separação */
+
+  /* Texto */
+  --color-tinta: #0b0b0b; /* texto principal */
+  --color-tinta-2: #52514e; /* texto secundário */
+  --color-suave: #898781; /* rótulos e apoios */
+
+  /* Marca */
+  --color-acento: #2a78d6; /* azul principal (links, item ativo) */
+  --color-acento-claro: #3987e5; /* azul para fundos escuros */
+
+  /* Barra lateral (superfície escura) */
+  --color-lateral: #1a1a19;
+  --color-lateral-hover: #2c2c2a;
+  --color-lateral-tinta: #c3c2b7;
+
+  /* Status — sempre acompanhados de texto, nunca só a cor */
+  --color-status-bom: #0ca30c;
+  --color-status-alerta: #fab219;
+  --color-status-serio: #ec835a;
+  --color-status-critico: #d03b3b;
+}
