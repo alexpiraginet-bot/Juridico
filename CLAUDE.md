@@ -31,7 +31,9 @@ npx prisma migrate dev --name <nome>  # nova migração após mudar o schema
 Next.js 15 (App Router) + React 19 + TypeScript estrito + Tailwind CSS 4
 (sem tailwind.config; tokens no bloco `@theme` de `app/globals.css`) +
 PostgreSQL na nuvem via Prisma 7 (`prisma/schema.prisma`; cliente gerado
-em `lib/generated/`, fora do git; conexão única em `lib/bd.ts`).
+em `lib/generated/`, fora do git; conexão única em `lib/bd.ts`) +
+API do Claude para IA (`lib/ia.ts`; modelo `claude-opus-4-8`) +
+API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 
 ## Convenções — seguir sempre
 
@@ -52,6 +54,12 @@ em `lib/generated/`, fora do git; conexão única em `lib/bd.ts`).
   via `bd` (`lib/bd.ts`) e escrita só por server actions em `lib/acoes/`
   (validar → gravar → `revalidatePath` → `redirect`; erro volta por
   `?erro=` na URL). Enums do banco são traduzidos em `lib/opcoes.ts`.
+- **IA e APIs externas rodam só no servidor** (`lib/ia.ts`,
+  `lib/juris/datajud.ts`): segredos em variáveis de ambiente, nunca no
+  cliente. Toda integração externa **degrada com elegância** — sem a
+  chave/conexão, a tela mostra aviso ou modo demonstração, nunca quebra.
+  A IA usa o SDK `@anthropic-ai/sdk`; consultar a skill `claude-api`
+  antes de mexer nela (modelo, thinking, tratamento de erros).
 - O "mundo" das telas de demonstração (dashboard, atendimentos,
   intimações, tarefas, minutas) segue congelado em **10/07/2026**
   (`lib/dados.ts`); datas dinâmicas são bem-vindas nas telas de banco.
@@ -66,9 +74,11 @@ em `lib/generated/`, fora do git; conexão única em `lib/bd.ts`).
 2. ✅ Fase 1.5 — unificação com o protótipo LexFlow (identidade + 8 telas).
 3. ✅ Fase 2 — PostgreSQL na nuvem + Prisma, CRUD real de clientes,
    processos e prazos (com validação humana de prazos).
-4. ⬜ Fase 3 — autenticação, perfis e auditoria.
-5. ⬜ Fase 4 — integrações reais (WhatsApp Business API, DJEN/Comunica API).
-6. ⬜ Fase 5 — IA real via API do Claude (relato fático, análise de
-   intimações, minutas), sempre com validação humana.
+4. 🟡 Fase 5 (em andamento) — IA real via API do Claude nas minutas e
+   consulta pública de jurisprudência ao DataJud/CNJ. Faltam: relato
+   fático e análise de intimações por IA.
+5. ⬜ Fase 3 — autenticação, perfis e auditoria.
+6. ⬜ Fase 4 — integrações de comunicação (WhatsApp Business API para
+   atendimentos, captura automática do DJEN para intimações).
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.
