@@ -987,12 +987,54 @@ se apaga.
 
 ---
 
+## Passo 29 — o relato fático dos atendimentos por IA (fecha a Fase 5)
+
+> Commit: `Passo 29: Fase 5 — relato fático dos atendimentos por IA`
+
+A tela de **Atendimentos** (o inbox do WhatsApp) sempre mostrou, à direita, uma
+"Análise da IA": relato fático, linha do tempo, checklist de documentos e
+perguntas ao cliente. Até aqui era **texto fixo** de demonstração. Agora a IA
+lê a conversa de verdade e redige tudo isso.
+
+- **Uma função nova, mesma disciplina.** `gerarAnaliseDoAtendimentoComClaude`
+  (em `lib/ia.ts`) recebe as mensagens do atendimento e devolve, em JSON
+  garantido pelo `output_config`, os quatro campos do painel. As instruções
+  repetem o princípio do produto: use SÓ o que está na conversa, marque o que
+  falta com "(a confirmar)", é RASCUNHO — a decisão é do advogado.
+- **A IA roda só no servidor.** A tela é um componente de cliente; ela chama a
+  *server action* `analisarAtendimento` (`lib/acoes/atendimentos.ts`), que roda
+  no servidor com a `ANTHROPIC_API_KEY` (nunca no navegador) e ainda exige
+  usuário logado.
+- **Degrada com elegância.** Sem a chave, a ação devolve um aviso e a tela
+  **mantém o rascunho de demonstração** — nada quebra. Com a chave, o botão
+  "✨ Gerar relato com IA" lê as mensagens (incluindo as digitadas na hora) e
+  troca o rascunho pela análise real, com o `SeloIA` sinalizando a origem.
+
+**Detalhes que valem estudar:**
+
+- **Cliente pede, servidor faz.** Como a chave da IA não pode ir para o
+  navegador, o componente de cliente não chama a Anthropic direto: ele invoca
+  uma server action, que é a fronteira onde o segredo fica seguro. É o mesmo
+  padrão das telas de banco, agora para uma ação que **devolve dados** (e não
+  redireciona).
+- **JSON garantido = sem parsing frágil.** O `format: json_schema` faz a
+  resposta sair exatamente no formato pedido — inclusive listas de objetos
+  (linha do tempo, checklist). O `JSON.parse` no fim é seguro porque o modelo
+  foi obrigado a seguir o esquema.
+- **O checklist vira porcentagem sozinho.** O painel deriva o "% completo" da
+  própria lista que a IA devolve (recebidos ÷ total) — um número que conta uma
+  história (quanto do caso já está documentado) a partir de dados, não de um
+  campo fixo.
+
+---
+
 ## O que vem a seguir
 
-A **Fase 3** está completa: login, app protegido por papel, painel central,
-escritórios isolados (25), pessoas isoladas (26), compartilhamento (27) e o
-**log de auditoria** (28). O que resta do produto é a **Fase 4** — o
-**WhatsApp Business API** dos atendimentos — e o fim da **Fase 5**, estendendo
-a IA ao **relato fático** dos atendimentos. O alicerce — banco na nuvem, IA
-conectada, consulta pública ao Judiciário, captura oficial pela OAB e acesso
-multi-inquilino auditado — já está de pé.
+A **Fase 5** agora está completa: a IA de verdade escreve minutas, resume
+processos (DataJud) e intimações (DJEN) e redige o **relato fático** dos
+atendimentos. A **Fase 3** também (login, papéis, isolamento,
+compartilhamento e auditoria). O que resta do produto é a **Fase 4** — ligar
+o **WhatsApp Business API** para que os atendimentos deixem de ser
+demonstração e passem a receber as conversas de verdade. O alicerce — banco na
+nuvem, IA conectada em todas as frentes, consulta pública ao Judiciário,
+captura oficial pela OAB e acesso multi-inquilino auditado — já está de pé.

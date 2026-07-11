@@ -280,3 +280,111 @@ Explique esta publicação.`;
   if (!texto) throw new Error("A IA não retornou o resumo — tente novamente.");
   return JSON.parse(texto) as ResumoDaIntimacao;
 }
+
+/*
+ * Relato fático do atendimento — o que faltava da Fase 5. Lê a conversa do
+ * WhatsApp entre o cliente e o escritório e redige, para o advogado, o
+ * rascunho do relato fático (mais a linha do tempo, o checklist de documentos
+ * e as perguntas a fazer). Mesma disciplina de sempre: usa SÓ o que está na
+ * conversa, marca o que é incerto, e é RASCUNHO — a decisão é do advogado.
+ */
+export interface MensagemParaIa {
+  de: "cliente" | "escritorio";
+  texto: string;
+  documento?: string; // anexo citado na conversa (ex.: "carteira_trabalho.pdf")
+}
+
+export interface AnaliseDoAtendimento {
+  relatoFatico: string;
+  linhaDoTempo: { quando: string; texto: string }[];
+  checklist: { recebido: boolean; texto: string }[];
+  perguntas: string[];
+}
+
+const INSTRUCOES_DO_RELATO = `Você é o assistente do LexFlow que lê o atendimento inicial (conversa de WhatsApp) entre um cliente e um escritório de advocacia brasileiro e prepara, para o advogado, o rascunho da análise do caso.
+
+A partir das mensagens (marcadas como CLIENTE ou ESCRITÓRIO) e dos documentos citados, produza:
+- "relatoFatico": o relato fático em 3 a 6 frases, em português forense, na 3ª pessoa e de forma objetiva. Narre só os fatos relatados pelo cliente. Marque o que ainda não está confirmado com "(a confirmar)".
+- "linhaDoTempo": os eventos relevantes em ordem cronológica. Cada item tem "quando" (uma referência temporal — data, mês/ano ou algo como "há ~4 anos" quando a conversa não trouxer a data exata) e "texto" (o que aconteceu).
+- "checklist": os documentos que ESTE tipo de caso costuma exigir. Marque "recebido": true SOMENTE para os que a conversa indica já terem sido enviados/anexados; os demais ficam false.
+- "perguntas": perguntas objetivas que o advogado deveria fazer ao cliente para completar o caso.
+
+Regras inegociáveis:
+- Use SOMENTE o que está na conversa. NÃO invente fatos, partes, valores, datas nem documentos.
+- É um RASCUNHO para revisão do advogado — nunca a versão final.
+- Não escreva nada fora dos campos pedidos.`;
+
+export async function gerarAnaliseDoAtendimentoComClaude(
+  mensagens: MensagemParaIa[],
+): Promise<AnaliseDoAtendimento> {
+  const cliente = new Anthropic();
+
+  const transcricao = mensagens
+    .map((m) => {
+      const quem = m.de === "cliente" ? "CLIENTE" : "ESCRITÓRIO";
+      const anexo = m.documento ? ` [anexou o documento: ${m.documento}]` : "";
+      return `${quem}: ${m.texto}${anexo}`;
+    })
+    .join("\n");
+
+  const pedido = `Conversa do atendimento (em ordem):
+"""
+${transcricao.slice(0, 12000)}
+"""
+
+Prepare a análise deste atendimento.`;
+
+  const resposta = await cliente.messages.create({
+    model: process.env.MODELO_IA ?? MODELO_PADRAO,
+    max_tokens: 4000,
+    thinking: { type: "adaptive" },
+    output_config: {
+      effort: "medium",
+      format: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            relatoFatico: { type: "string" },
+            linhaDoTempo: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: { quando: { type: "string" }, texto: { type: "string" } },
+                required: ["quando", "texto"],
+              },
+            },
+            checklist: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: { recebido: { type: "boolean" }, texto: { type: "string" } },
+                required: ["recebido", "texto"],
+              },
+            },
+            perguntas: { type: "array", items: { type: "string" } },
+          },
+          required: ["relatoFatico", "linhaDoTempo", "checklist", "perguntas"],
+        },
+      },
+    },
+    system: INSTRUCOES_DO_RELATO,
+    messages: [{ role: "user", content: pedido }],
+  });
+
+  if (resposta.stop_reason === "refusal") {
+    throw new Error("O modelo recusou analisar este atendimento.");
+  }
+
+  const texto = resposta.content
+    .filter((bloco): bloco is Anthropic.TextBlock => bloco.type === "text")
+    .map((bloco) => bloco.text)
+    .join("")
+    .trim();
+
+  if (!texto) throw new Error("A IA não retornou a análise — tente novamente.");
+  return JSON.parse(texto) as AnaliseDoAtendimento;
+}
