@@ -14,18 +14,27 @@ function dataDjen(iso: string | null): string {
   return iso ?? "—";
 }
 
+// O que o usuário vê na lista: as SUAS capturas + as que colegas do mesmo
+// Team compartilharam com ele. Inclui o nome do dono, para marcar as
+// recebidas ("de Fulano"). Tipo inferido daqui — inclui a relação `usuario`.
+async function carregarIntimacoes(usuarioId: string) {
+  return bd.intimacao.findMany({
+    where: {
+      OR: [{ usuarioId }, { compartilhamentos: { some: { usuarioId } } }],
+    },
+    include: { usuario: { select: { nome: true } } },
+    orderBy: [{ dataDisponibilizacao: "desc" }, { criadoEm: "desc" }],
+    take: 100,
+  });
+}
+
 export default async function PaginaIntimacoes() {
   const usuario = await exigirUsuario();
 
-  let intimacoes: Awaited<ReturnType<typeof bd.intimacao.findMany>> = [];
+  let intimacoes: Awaited<ReturnType<typeof carregarIntimacoes>> = [];
   let semBanco = false;
   try {
-    // Isolamento: cada usuário vê só as suas intimações.
-    intimacoes = await bd.intimacao.findMany({
-      where: { usuarioId: usuario.id },
-      orderBy: [{ dataDisponibilizacao: "desc" }, { criadoEm: "desc" }],
-      take: 100,
-    });
+    intimacoes = await carregarIntimacoes(usuario.id);
   } catch {
     semBanco = true;
   }
@@ -73,7 +82,10 @@ export default async function PaginaIntimacoes() {
         </div>
       ) : (
         <ul className="space-y-2.5">
-          {intimacoes.map((it) => (
+          {intimacoes.map((it) => {
+            // Recebida = de outro dono, compartilhada comigo.
+            const recebida = it.usuarioId !== usuario.id;
+            return (
             <li key={it.id}>
               <Link
                 href={`/intimacoes/${it.id}`}
@@ -91,11 +103,14 @@ export default async function PaginaIntimacoes() {
                   )}
                 </div>
 
-                {/* linha 2: selos de tipo e tribunal */}
-                {(it.tipo || it.tribunal) && (
+                {/* linha 2: selos de tipo, tribunal e (se for) recebida */}
+                {(it.tipo || it.tribunal || recebida) && (
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     {it.tipo && <Selo tom="vermelho">{it.tipo}</Selo>}
                     {it.tribunal && <Selo tom="cinza">{it.tribunal}</Selo>}
+                    {recebida && (
+                      <Selo tom="azul">🤝 recebida{it.usuario ? ` de ${it.usuario.nome}` : ""}</Selo>
+                    )}
                   </div>
                 )}
 
@@ -117,7 +132,8 @@ export default async function PaginaIntimacoes() {
                 </span>
               </Link>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

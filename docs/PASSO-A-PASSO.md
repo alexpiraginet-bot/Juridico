@@ -906,14 +906,52 @@ e ninguém vê a publicação do colega — mesmo estando no mesmo Team.
 
 ---
 
+## Passo 27 — compartilhamento: liberar uma publicação para um colega
+
+> Commit: `Passo 27: Fase 3 — compartilhamento (o dono libera uma intimação para um colega do Team)`
+
+Terceira e última camada do multi-inquilino desta rodada. O isolamento
+(Passo 26) fechou tudo: cada um só vê o seu. O compartilhamento abre uma
+fresta **controlada** — o dono de uma publicação libera a **leitura** para
+um colega do **mesmo escritório**, sem virar bagunça coletiva.
+
+- **Um vínculo simples.** A tabela nova `CompartilhamentoIntimacao` guarda só
+  o par (publicação, destinatário). Quem compartilhou é sempre o dono da
+  intimação, então não precisa de outra coluna. `(intimacao, usuario)` é
+  único: compartilhar de novo com a mesma pessoa é inofensivo.
+- **Só o dono libera (e revoga).** Na página da publicação, o dono vê um
+  painel *Compartilhar* com os colegas do Team que ainda não têm acesso, e a
+  lista de quem já tem — cada um com um **remover**. As ações conferem, no
+  servidor, que quem age é mesmo o dono e que o destinatário é da equipe.
+- **Quem recebeu, vê — só de leitura.** A aba *Intimações* passou a listar
+  as suas publicações **+** as recebidas (marcadas com o selo *🤝 recebida de
+  Fulano*); a página de detalhe abre para o dono **ou** para quem recebeu.
+  O painel de compartilhar não aparece para o destinatário: ele lê, não
+  redistribui.
+
+**Detalhes que valem estudar:**
+
+- **Abrir sem furar o isolamento.** O portão do detalhe deixou de ser "só o
+  dono" e virou "dono **ou** destinatário" (`ehDono || recebida`) — quem não
+  é nenhum dos dois ainda leva `notFound()`. Compartilhar é uma exceção
+  explícita à regra do Passo 26, não um buraco nela.
+- **Tipo que segue a consulta.** Ao incluir a relação do dono na busca da
+  lista (`include: { usuario }`), o tipo do resultado muda. Em vez de anotar
+  na mão, extraí a consulta para uma função e deixei o TypeScript inferir o
+  tipo dela (`Awaited<ReturnType<typeof carregarIntimacoes>>`) — assim o
+  código e o tipo nunca saem de sincronia.
+- **Checar no servidor, sempre.** O `<select>` só oferece colegas válidos,
+  mas a ação **reconfere** dono e equipe antes de gravar. Formulário é dica
+  de UX; a regra de acesso mora no servidor.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 3**: o **compartilhamento** entre advogados do mesmo Team
-(um advogado libera uma publicação/processo para o colega ver, sem abrir tudo
-para todos). Na **Fase 4**, o **WhatsApp Business API**; e, na **Fase 5**, o
-relato fático dos atendimentos por IA.
-Depois, a **Fase 3** (autenticação, perfis por função e o log de
-auditoria — "quem validou este prazo, e quando?") e o que falta da
-**Fase 5** (estender a IA para o relato fático e a análise de
-intimações). O alicerce — banco na nuvem, IA conectada, consulta pública
-ao Judiciário e agora a captura oficial pela OAB — já está de pé.
+A tríade de acesso da **Fase 3** está de pé: **escritórios** isolados
+(Passo 25), **pessoas** isoladas (Passo 26) e **compartilhamento** pontual
+entre colegas (Passo 27). Falta dela o **log de auditoria** — "quem validou
+este prazo, e quando?". Depois, a **Fase 4** traz o **WhatsApp Business API**
+dos atendimentos e a **Fase 5** estende a IA ao **relato fático**. O alicerce
+— banco na nuvem, IA conectada, consulta pública ao Judiciário, captura
+oficial pela OAB e agora acesso multi-inquilino — já está de pé.

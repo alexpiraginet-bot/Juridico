@@ -6,6 +6,7 @@ import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { bd } from "@/lib/bd";
 import { exigirUsuario } from "@/lib/auth";
+import { compartilharIntimacao, revogarCompartilhamento } from "@/lib/acoes/compartilhamento";
 import { iaConfigurada, resumirIntimacaoComClaude } from "@/lib/ia";
 
 export const metadata: Metadata = { title: "Publicação · DJEN" };
@@ -88,13 +89,44 @@ function CarregandoResumo() {
   );
 }
 
-export default async function PaginaIntimacao({ params }: { params: Promise<{ id: string }> }) {
+export default async function PaginaIntimacao({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ erro?: string }>;
+}) {
   const usuario = await exigirUsuario();
   const { id } = await params;
+  const { erro } = await searchParams;
 
-  const intimacao = await bd.intimacao.findUnique({ where: { id } });
-  // Isolamento: só o dono da captura abre a publicação.
-  if (!intimacao || intimacao.usuarioId !== usuario.id) notFound();
+  const intimacao = await bd.intimacao.findUnique({
+    where: { id },
+    include: {
+      usuario: { select: { nome: true } }, // o dono da captura
+      compartilhamentos: {
+        include: { usuario: { select: { id: true, nome: true, email: true } } },
+        orderBy: { criadoEm: "asc" },
+      },
+    },
+  });
+
+  // Quem abre: o dono da captura OU alguém com quem ela foi compartilhada.
+  const ehDono = !!intimacao && intimacao.usuarioId === usuario.id;
+  const recebida = !!intimacao && intimacao.compartilhamentos.some((c) => c.usuarioId === usuario.id);
+  if (!intimacao || (!ehDono && !recebida)) notFound();
+
+  // Só o dono compartilha. Ofereço os colegas do mesmo Team que ainda não têm.
+  let colegas: { id: string; nome: string; email: string }[] = [];
+  if (ehDono && usuario.teamId) {
+    const jaTem = new Set(intimacao.compartilhamentos.map((c) => c.usuarioId));
+    const equipe = await bd.usuario.findMany({
+      where: { teamId: usuario.teamId, id: { not: usuario.id } },
+      orderBy: { nome: "asc" },
+      select: { id: true, nome: true, email: true },
+    });
+    colegas = equipe.filter((c) => !jaTem.has(c.id));
+  }
 
   const teor = intimacao.teor ?? intimacao.resumo ?? "";
 
@@ -128,6 +160,102 @@ export default async function PaginaIntimacao({ params }: { params: Promise<{ id
         >
           ver este processo na carteira →
         </Link>
+      )}
+
+      {/* Erro de compartilhamento (volta pela URL) */}
+      {erro && (
+        <p className="mt-4 rounded-lg border border-[#E5C4C0] bg-selo-vermelho px-3 py-2 text-[12.5px] font-semibold text-vermelho">
+          ⚠️ {erro}
+        </p>
+      )}
+
+      {/* Recebida: aviso de leitura compartilhada */}
+      {recebida && !ehDono && (
+        <div className="mt-4 rounded-xl border border-[#C9DAEA] bg-selo-azul px-3.5 py-2.5 text-[12.5px] text-azul">
+          🤝 Compartilhada com você
+          {intimacao.usuario ? (
+            <>
+              {" "}
+              por <b>{intimacao.usuario.nome}</b>
+            </>
+          ) : null}
+          . Acesso de leitura.
+        </div>
+      )}
+
+      {/* Dono: painel de compartilhamento */}
+      {ehDono && (
+        <div className="mt-4 rounded-xl border border-borda bg-superficie p-4">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="text-[13px] font-bold text-navy">🤝 Compartilhar</span>
+            <span className="text-[11.5px] text-suave">
+              dá acesso de leitura a um colega do escritório
+            </span>
+          </div>
+
+          {colegas.length > 0 ? (
+            <form action={compartilharIntimacao} className="mt-3 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="intimacaoId" value={intimacao.id} />
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold text-suave">Colega</span>
+                <select
+                  name="destinatarioId"
+                  required
+                  defaultValue=""
+                  className="w-64 max-w-full rounded-lg border border-borda bg-superficie px-3 py-2 text-[13px] outline-none focus:border-verde"
+                >
+                  <option value="" disabled>
+                    Escolha um colega…
+                  </option>
+                  {colegas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome} · {c.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="submit"
+                className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro"
+              >
+                Compartilhar
+              </button>
+            </form>
+          ) : (
+            <p className="mt-2 text-[12px] text-suave">
+              {intimacao.compartilhamentos.length > 0
+                ? "Todos os colegas do escritório já têm acesso a esta publicação."
+                : "Cadastre colegas no seu escritório para poder compartilhar."}
+            </p>
+          )}
+
+          {intimacao.compartilhamentos.length > 0 && (
+            <div className="mt-3 border-t border-borda pt-3">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-suave">
+                Compartilhada com
+              </p>
+              <ul className="space-y-1.5">
+                {intimacao.compartilhamentos.map((c) => (
+                  <li key={c.id} className="flex items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate text-[12.5px] text-tinta">
+                      {c.usuario.nome} <span className="text-suave">· {c.usuario.email}</span>
+                    </span>
+                    <form action={revogarCompartilhamento}>
+                      <input type="hidden" name="intimacaoId" value={intimacao.id} />
+                      <input type="hidden" name="destinatarioId" value={c.usuario.id} />
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-[#E5C4C0] bg-white px-2.5 py-1 text-[11px] font-semibold text-vermelho hover:bg-selo-vermelho"
+                      >
+                        remover
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Resumo da IA */}
