@@ -1,34 +1,45 @@
 "use client";
 
 /*
- * Navegação lateral do LexFlow — as seções do protótipo, mais as telas
- * de dados reais que fomos acrescentando (Jurisprudência, Meus processos).
+ * Navegação lateral do LexFlow — agora ciente do papel do usuário:
+ * o super-admin vê só a Central; o dono do escritório vê as telas do app
+ * mais Usuários/Credenciais; os demais veem as telas do app.
  * Componente de cliente: usa usePathname para destacar o item ativo.
- * Em telas estreitas mostra só os ícones.
  */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { usuario } from "@/lib/dados";
+
+// Papéis que enxergam as telas do dia a dia do escritório.
+const EQUIPE = ["DONO_ESCRITORIO", "ADVOGADO", "ASSESSOR", "ESTAGIARIO"];
 
 const itens = [
-  { rotulo: "Dashboard", href: "/", icone: "📊" },
-  { rotulo: "Atendimentos", href: "/atendimentos", icone: "💬" },
-  { rotulo: "Clientes", href: "/clientes", icone: "👤" },
-  { rotulo: "Processos", href: "/processos", icone: "⚖️" },
-  { rotulo: "Intimações", href: "/intimacoes", icone: "📨" },
-  { rotulo: "Meus processos", href: "/djen", icone: "📡" },
-  { rotulo: "Jurisprudência", href: "/jurisprudencia", icone: "📚" },
-  { rotulo: "Prazos", href: "/prazos", icone: "⏱️" },
-  { rotulo: "Tarefas", href: "/tarefas", icone: "🗂️" },
-  { rotulo: "Minutas IA", href: "/minutas", icone: "✍️" },
-  { rotulo: "Usuários", href: "/usuarios", icone: "👥" },
-  { rotulo: "Credenciais", href: "/credenciais", icone: "🔑" },
-  { rotulo: "Central", href: "/central", icone: "🏛️" },
+  { rotulo: "Dashboard", href: "/", icone: "📊", papeis: EQUIPE },
+  { rotulo: "Atendimentos", href: "/atendimentos", icone: "💬", papeis: EQUIPE },
+  { rotulo: "Clientes", href: "/clientes", icone: "👤", papeis: EQUIPE },
+  { rotulo: "Processos", href: "/processos", icone: "⚖️", papeis: EQUIPE },
+  { rotulo: "Intimações", href: "/intimacoes", icone: "📨", papeis: EQUIPE },
+  { rotulo: "Meus processos", href: "/djen", icone: "📡", papeis: EQUIPE },
+  { rotulo: "Jurisprudência", href: "/jurisprudencia", icone: "📚", papeis: EQUIPE },
+  { rotulo: "Prazos", href: "/prazos", icone: "⏱️", papeis: EQUIPE },
+  { rotulo: "Tarefas", href: "/tarefas", icone: "🗂️", papeis: EQUIPE },
+  { rotulo: "Minutas IA", href: "/minutas", icone: "✍️", papeis: EQUIPE },
+  { rotulo: "Usuários", href: "/usuarios", icone: "👥", papeis: ["DONO_ESCRITORIO"] },
+  { rotulo: "Credenciais", href: "/credenciais", icone: "🔑", papeis: ["DONO_ESCRITORIO"] },
+  { rotulo: "Central", href: "/central", icone: "🏛️", papeis: ["SUPERADMIN"] },
 ];
 
-export function BarraLateral() {
+export function BarraLateral({
+  papel,
+  nome,
+  subtitulo,
+}: {
+  papel: string;
+  nome: string;
+  subtitulo: string;
+}) {
   const pathname = usePathname();
+  const visiveis = itens.filter((i) => i.papeis.includes(papel));
 
   return (
     <aside className="flex h-screen w-16 shrink-0 flex-col bg-navy md:w-56">
@@ -41,13 +52,11 @@ export function BarraLateral() {
             Lex<span className="text-verde">Flow</span>
           </span>
         </p>
-        <p className="hidden text-[10px] tracking-[1px] text-[#8fa0b8] md:block">
-          GESTÃO JURÍDICA · IA
-        </p>
+        <p className="hidden text-[10px] tracking-[1px] text-[#8fa0b8] md:block">GESTÃO JURÍDICA · IA</p>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-2.5">
-        {itens.map(({ rotulo, href, icone }) => {
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2.5">
+        {visiveis.map(({ rotulo, href, icone }) => {
           const ativo = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
@@ -67,8 +76,8 @@ export function BarraLateral() {
       </nav>
 
       <div className="hidden border-t border-white/10 px-4 py-3.5 text-xs text-[#9db0c6] md:block">
-        <b className="block text-[13px] font-semibold text-white">{usuario.nome}</b>
-        {usuario.cargo}
+        <b className="block truncate text-[13px] font-semibold text-white">{nome}</b>
+        <span className="truncate">{subtitulo}</span>
       </div>
     </aside>
   );

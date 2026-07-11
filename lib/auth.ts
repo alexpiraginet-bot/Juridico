@@ -104,6 +104,16 @@ export async function exigirSuperadmin(): Promise<UsuarioLogado> {
   return u;
 }
 
+// Exige um DONO_ESCRITORIO com Team — quem gere a própria equipe. Garante
+// `teamId` não-nulo para as telas e ações scoparem pelo escritório.
+export async function exigirDono(): Promise<UsuarioLogado & { teamId: string }> {
+  const u = await usuarioAtual();
+  if (!u) redirect("/entrar");
+  if (u.papel === "SUPERADMIN") redirect("/central");
+  if (u.papel !== "DONO_ESCRITORIO" || !u.teamId) redirect("/");
+  return u as UsuarioLogado & { teamId: string };
+}
+
 /*
  * Garante que o SUPERADMIN (nós, a plataforma) exista, a partir das
  * variáveis de ambiente — idempotente. Chamada no fluxo de login, para o

@@ -3,13 +3,18 @@ import Link from "next/link";
 import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
-import { exigirSuperadmin } from "@/lib/auth";
+import { exigirDono } from "@/lib/auth";
 import { criarUsuario, excluirUsuario } from "@/lib/acoes/usuarios";
 
 export const metadata: Metadata = { title: "Usuários" };
 export const dynamic = "force-dynamic";
 
-const CARGOS = ["Advogado(a)", "Estagiário(a)", "Secretaria", "Administrador(a)"];
+const PAPEL: Record<string, string> = {
+  DONO_ESCRITORIO: "Dono",
+  ADVOGADO: "Advogado(a)",
+  ASSESSOR: "Assessor(a)",
+  ESTAGIARIO: "Estagiário(a)",
+};
 
 const entrada =
   "w-full rounded-lg border border-borda bg-superficie px-3 py-2 text-[13px] outline-none focus:border-verde";
@@ -19,20 +24,21 @@ export default async function PaginaUsuarios({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
-  await exigirSuperadmin();
+  const dono = await exigirDono();
   const { erro } = await searchParams;
 
   const usuarios = await bd.usuario.findMany({
+    where: { teamId: dono.teamId },
     orderBy: { criadoEm: "asc" },
     include: { _count: { select: { credenciais: true } } },
   });
 
   return (
     <div>
-      <h1 className="text-lg font-bold text-navy">Usuários</h1>
+      <h1 className="text-lg font-bold text-navy">Equipe · {dono.team?.nome}</h1>
       <p className="mb-4 mt-0.5 text-xs text-suave">
-        A equipe do escritório. Cada usuário pode ter suas credenciais de OAB para a captura
-        automática de processos.
+        Os usuários do seu escritório. Cada um entra com o próprio login; assessores e estagiários
+        costumam ser só consulta.
       </p>
 
       {erro && (
@@ -52,20 +58,22 @@ export default async function PaginaUsuarios({
             <input name="nome" required className={entrada} placeholder="Nome completo" />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-suave">E-mail</span>
+            <span className="mb-1 block text-xs font-semibold text-suave">E-mail (login)</span>
             <input name="email" type="email" required className={entrada} placeholder="nome@escritorio.com" />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-suave">Cargo</span>
-            <select name="cargo" defaultValue={CARGOS[0]} className={entrada}>
-              {CARGOS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+            <span className="mb-1 block text-xs font-semibold text-suave">Papel</span>
+            <select name="papel" defaultValue="ADVOGADO" className={entrada}>
+              <option value="ADVOGADO">Advogado(a)</option>
+              <option value="ASSESSOR">Assessor(a) — só consulta</option>
+              <option value="ESTAGIARIO">Estagiário(a) — só consulta</option>
             </select>
           </label>
-          <div className="flex items-end sm:col-span-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-suave">Senha inicial (mín. 6)</span>
+            <input name="senha" type="password" required minLength={6} className={entrada} placeholder="••••••••" />
+          </label>
+          <div className="sm:col-span-2">
             <button
               type="submit"
               className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro"
@@ -76,40 +84,39 @@ export default async function PaginaUsuarios({
         </form>
       </details>
 
-      {usuarios.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-borda bg-superficie p-8 text-center">
-          <p className="text-[15px] font-semibold text-navy">Nenhum usuário cadastrado ainda</p>
-          <p className="mx-auto mt-1 max-w-md text-[12.5px] text-suave">
-            Cadastre o primeiro usuário acima. Depois, em <b>Credenciais</b>, vincule a OAB dele
-            para a captura automática.
-          </p>
-        </div>
-      ) : (
-        <ul className="space-y-2.5">
-          {usuarios.map((u) => (
-            <li
-              key={u.id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-borda bg-superficie p-3.5"
+      <ul className="space-y-2.5">
+        {usuarios.map((u) => (
+          <li
+            key={u.id}
+            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-borda bg-superficie p-3.5"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold text-navy">
+                {u.nome}
+                {u.id === dono.id && (
+                  <span className="ml-2 text-[11px] font-normal text-suave">(você)</span>
+                )}
+              </p>
+              <p className="truncate text-[12px] text-suave">{u.email}</p>
+            </div>
+            <Selo tom={u.papel === "DONO_ESCRITORIO" ? "navy" : "cinza"}>
+              {PAPEL[u.papel] ?? u.papel}
+            </Selo>
+            <Link
+              href="/credenciais"
+              className="rounded-lg border border-borda px-2.5 py-1 text-[11px] font-semibold text-tinta hover:bg-plano"
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold text-navy">{u.nome}</p>
-                <p className="truncate text-[12px] text-suave">{u.email}</p>
-              </div>
-              {u.cargo && <Selo tom="cinza">{u.cargo}</Selo>}
-              <Link
-                href="/credenciais"
-                className="rounded-lg border border-borda px-2.5 py-1 text-[11px] font-semibold text-tinta hover:bg-plano"
-              >
-                🔑 {u._count.credenciais} OAB
-              </Link>
+              🔑 {u._count.credenciais} OAB
+            </Link>
+            {u.papel !== "DONO_ESCRITORIO" && (
               <BotaoExcluir
                 acao={excluirUsuario.bind(null, u.id)}
                 confirmacao={`Excluir ${u.nome}? As credenciais de OAB dele também serão removidas.`}
               />
-            </li>
-          ))}
-        </ul>
-      )}
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
