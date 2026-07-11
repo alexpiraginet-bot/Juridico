@@ -62,7 +62,7 @@ docs/                       # guias e diário de construção
 
 O repositório está conectado à Vercel (deploy contínuo):
 
-- **Produção** (branch `main`): <https://juridico-alexpiraginet-7738s-projects.vercel.app>
+- **Produção** (branch `main`): <https://juridico-liard.vercel.app>
 - Cada branch/PR ganha automaticamente um endereço de pré-visualização.
 - O build é configurado por [`vercel.json`](vercel.json) (`framework: nextjs`).
 
