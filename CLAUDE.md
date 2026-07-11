@@ -78,7 +78,9 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    consulta pública de jurisprudência ao DataJud/CNJ. Faltam: relato
    fático e análise de intimações por IA.
 5. ⬜ Fase 3 — autenticação, perfis e auditoria.
-6. ⬜ Fase 4 — integrações de comunicação (WhatsApp Business API para
-   atendimentos, captura automática do DJEN para intimações).
+6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
+   de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
+   causa do geobloqueio). Faltam: importar para o banco, captura
+   automática de hora em hora e o WhatsApp Business API dos atendimentos.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.

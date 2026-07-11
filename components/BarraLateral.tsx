@@ -1,7 +1,8 @@
 "use client";
 
 /*
- * Navegação lateral do LexFlow — as oito seções do protótipo.
+ * Navegação lateral do LexFlow — as seções do protótipo, mais as telas
+ * de dados reais que fomos acrescentando (Jurisprudência, Meus processos).
  * Componente de cliente: usa usePathname para destacar o item ativo.
  * Em telas estreitas mostra só os ícones.
  */
@@ -16,6 +17,7 @@ const itens = [
   { rotulo: "Clientes", href: "/clientes", icone: "👤" },
   { rotulo: "Processos", href: "/processos", icone: "⚖️" },
   { rotulo: "Intimações", href: "/intimacoes", icone: "📨" },
+  { rotulo: "Meus processos", href: "/djen", icone: "📡" },
   { rotulo: "Jurisprudência", href: "/jurisprudencia", icone: "📚" },
   { rotulo: "Prazos", href: "/prazos", icone: "⏱️" },
   { rotulo: "Tarefas", href: "/tarefas", icone: "🗂️" },
