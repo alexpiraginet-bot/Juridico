@@ -946,12 +946,53 @@ um colega do **mesmo escritório**, sem virar bagunça coletiva.
 
 ---
 
+## Passo 28 — log de auditoria: quem fez o quê, e quando
+
+> Commit: `Passo 28: Fase 3 — log de auditoria (quem fez o quê, e quando)`
+
+O que fecha a **Fase 3**. Num sistema jurídico multi-inquilino, não basta
+controlar quem *pode* fazer — é preciso registrar o que *foi* feito. O log de
+auditoria é uma trilha **append-only**: só se acrescenta, nunca se edita nem
+se apaga.
+
+- **Um gravador que nunca atrapalha.** `lib/auditoria.ts` tem uma função só,
+  `registrarAuditoria`, chamada pelas ações depois que elas dão certo. Se o
+  banco falhar *no log*, ela engole o erro em silêncio — perder um registro é
+  menos grave do que derrubar a operação que o usuário pediu.
+- **O nome fica gravado.** O registro guarda o `usuarioNome` do autor, não só
+  o id. Se a pessoa for removida depois, a FK vira nula (`SET NULL`) mas o
+  histórico continua legível — "Fulano validou o prazo X" não vira "??? fez
+  algo".
+- **Escopo por escritório.** Cada registro carrega o `teamId`. O **dono** vê
+  em `/auditoria` só o log do próprio escritório; o **super-admin** vê a
+  plataforma inteira (com a coluna do escritório). Os demais papéis não
+  acessam a tela — auditoria é ferramenta de gestão.
+- **Onde entram os carimbos.** Login; usuário criado/removido; OAB
+  cadastrada/removida; intimação importada, compartilhada e revogada; prazo
+  validado (o exemplo clássico — "quem validou, e quando?"); e escritório
+  criado/removido (evento de plataforma). A criação do escritório já nasce
+  como a **primeira linha** do log daquele Team.
+
+**Detalhes que valem estudar:**
+
+- **Log desnormalizado de propósito.** Em geral evitamos repetir dado (o nome
+  está na tabela de usuários). No log fazemos o contrário: copiamos o nome
+  para dentro do registro. Auditoria é uma **fotografia do momento** — tem de
+  sobreviver a mudanças e remoções posteriores.
+- **`SET NULL` outra vez.** Como na intimação (Passo 26), a FK do autor é
+  `SET NULL`: apagar um usuário não apaga o rastro dele. Já o `teamId` é
+  `CASCADE` — se o escritório inteiro sai, o log dele vai junto (por isso a
+  remoção de escritório é gravada como evento de **plataforma**, `teamId`
+  nulo, que sobra no log do super-admin).
+
+---
+
 ## O que vem a seguir
 
-A tríade de acesso da **Fase 3** está de pé: **escritórios** isolados
-(Passo 25), **pessoas** isoladas (Passo 26) e **compartilhamento** pontual
-entre colegas (Passo 27). Falta dela o **log de auditoria** — "quem validou
-este prazo, e quando?". Depois, a **Fase 4** traz o **WhatsApp Business API**
-dos atendimentos e a **Fase 5** estende a IA ao **relato fático**. O alicerce
-— banco na nuvem, IA conectada, consulta pública ao Judiciário, captura
-oficial pela OAB e agora acesso multi-inquilino — já está de pé.
+A **Fase 3** está completa: login, app protegido por papel, painel central,
+escritórios isolados (25), pessoas isoladas (26), compartilhamento (27) e o
+**log de auditoria** (28). O que resta do produto é a **Fase 4** — o
+**WhatsApp Business API** dos atendimentos — e o fim da **Fase 5**, estendendo
+a IA ao **relato fático** dos atendimentos. O alicerce — banco na nuvem, IA
+conectada, consulta pública ao Judiciário, captura oficial pela OAB e acesso
+multi-inquilino auditado — já está de pé.

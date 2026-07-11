@@ -9,6 +9,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
+import { exigirUsuario } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function texto(dados: FormData, campo: string): string {
   return String(dados.get(campo) ?? "").trim();
@@ -45,7 +47,16 @@ export async function criarPrazo(dados: FormData) {
 }
 
 export async function validarPrazo(id: string) {
-  await bd.prazo.update({ where: { id }, data: { validado: true } });
+  const usuario = await exigirUsuario();
+  // O update devolve o prazo já atualizado — usamos a descrição no log.
+  const prazo = await bd.prazo.update({ where: { id }, data: { validado: true } });
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioNome: usuario.nome,
+    teamId: usuario.teamId,
+    acao: "prazo.validado",
+    detalhe: `validou o prazo '${prazo.descricao}'`,
+  });
   revalidatePath("/prazos");
 }
 

@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
 import { exigirDono, hashSenha } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 // Papéis que o dono pode atribuir (nunca SUPERADMIN nem outro dono).
 const PAPEIS_EQUIPE = ["ADVOGADO", "ASSESSOR", "ESTAGIARIO"] as const;
@@ -52,21 +53,45 @@ export async function criarUsuario(dados: FormData) {
   }
 
   if (erro) redirect(`/usuarios?erro=${encodeURIComponent(erro)}`);
+  await registrarAuditoria({
+    usuarioId: dono.id,
+    usuarioNome: dono.nome,
+    teamId: dono.teamId,
+    acao: "usuario.criado",
+    detalhe: `cadastrou ${nome} (${papel})`,
+  });
   revalidatePath("/usuarios");
   redirect("/usuarios");
 }
 
 export async function excluirUsuario(id: string) {
   const dono = await exigirDono();
+  let nomeRemovido: string | null = null;
   try {
     // Só remove membro da própria equipe, e nunca o próprio dono.
-    await bd.usuario.deleteMany({
+    const alvo = await bd.usuario.findFirst({
       where: { id, teamId: dono.teamId, papel: { not: "DONO_ESCRITORIO" } },
+      select: { nome: true },
     });
+    if (alvo) {
+      await bd.usuario.deleteMany({
+        where: { id, teamId: dono.teamId, papel: { not: "DONO_ESCRITORIO" } },
+      });
+      nomeRemovido = alvo.nome;
+    }
   } catch {
     redirect(
       `/usuarios?erro=${encodeURIComponent("Não foi possível excluir — verifique a conexão com o banco.")}`,
     );
+  }
+  if (nomeRemovido) {
+    await registrarAuditoria({
+      usuarioId: dono.id,
+      usuarioNome: dono.nome,
+      teamId: dono.teamId,
+      acao: "usuario.removido",
+      detalhe: `removeu ${nomeRemovido}`,
+    });
   }
   revalidatePath("/usuarios");
 }

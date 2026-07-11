@@ -8,6 +8,7 @@
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
 import { criarSessao, encerrarSessao, garantirSuperadmin, verificarSenha } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 export async function entrar(dados: FormData) {
   const email = String(dados.get("email") ?? "").trim().toLowerCase();
@@ -25,6 +26,13 @@ export async function entrar(dados: FormData) {
   }
 
   await criarSessao(usuario.id);
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioNome: usuario.nome,
+    teamId: usuario.teamId,
+    acao: "login",
+    detalhe: "entrou no sistema",
+  });
   redirect(usuario.papel === "SUPERADMIN" ? "/central" : "/");
 }
 

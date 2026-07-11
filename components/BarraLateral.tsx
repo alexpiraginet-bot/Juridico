@@ -26,6 +26,7 @@ const itens = [
   { rotulo: "Minutas IA", href: "/minutas", icone: "✍️", papeis: EQUIPE },
   { rotulo: "Usuários", href: "/usuarios", icone: "👥", papeis: ["DONO_ESCRITORIO"] },
   { rotulo: "Credenciais", href: "/credenciais", icone: "🔑", papeis: ["DONO_ESCRITORIO"] },
+  { rotulo: "Auditoria", href: "/auditoria", icone: "📋", papeis: ["DONO_ESCRITORIO", "SUPERADMIN"] },
   { rotulo: "Central", href: "/central", icone: "🏛️", papeis: ["SUPERADMIN"] },
 ];
 
