@@ -66,6 +66,8 @@ app/                        # cada pasta vira uma página (App Router)
   prazos/                   #   agenda oficial com validação humana
   tarefas/                  #   kanban de fluxos (demonstração)
   minutas/                  #   minutas redigidas pela IA (com validação humana)
+  entrar/                   #   login (e-mail + senha) — Fase 3
+  central/                  #   painel do super-admin: cadastro de escritórios
   usuarios/                 #   cadastro da equipe (Fase 3)
   credenciais/              #   credenciais de OAB por usuário (automação)
   api/djen/varrer/          #   rota do cron diário (varre as OABs ativas)

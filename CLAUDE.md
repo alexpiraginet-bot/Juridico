@@ -78,9 +78,13 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 4. 🟡 Fase 5 (em andamento) — IA real via API do Claude nas minutas, no
    resumo de processos (andamentos do DataJud) e no resumo de intimações
    do DJEN. Falta: relato fático dos atendimentos por IA.
-5. 🟡 Fase 3 (em andamento) — usuários e credenciais de OAB para a
-   automação multiusuário (telas `/usuarios` e `/credenciais`). Falta:
-   login com senha, perfis por função e auditoria.
+5. 🟡 Fase 3 (em andamento) — multi-inquilino com login. Já feito:
+   usuários e credenciais de OAB (automação multiusuário); **login por
+   e-mail+senha** (`lib/auth.ts`, scrypt + sessão em cookie httpOnly);
+   **painel central** do super-admin (`/central`) que cadastra escritórios
+   (`Team`, com logo). Falta: dono gerindo a própria equipe, isolamento
+   (cada advogado vê só o seu), compartilhamento, gate do app inteiro e
+   auditoria.
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
    causa do geobloqueio), importação para o banco (tabela `Intimacao`,

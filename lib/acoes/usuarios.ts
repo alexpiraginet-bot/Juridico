@@ -10,12 +10,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
+import { exigirSuperadmin } from "@/lib/auth";
 
 function texto(dados: FormData, campo: string): string {
   return String(dados.get(campo) ?? "").trim();
 }
 
 export async function criarUsuario(dados: FormData) {
+  await exigirSuperadmin();
   const nome = texto(dados, "nome");
   const email = texto(dados, "email").toLowerCase();
   const cargo = texto(dados, "cargo") || null;
@@ -42,6 +44,7 @@ export async function criarUsuario(dados: FormData) {
 }
 
 export async function excluirUsuario(id: string) {
+  await exigirSuperadmin();
   try {
     await bd.usuario.delete({ where: { id } });
   } catch {
