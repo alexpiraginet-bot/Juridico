@@ -1,10 +1,11 @@
 /*
- * Modelo de domínio do LexFlow.
+ * Tipos das telas de demonstração do LexFlow.
  *
- * Nesta fase os dados são os do protótipo (public/prototipo.html) e
- * vivem em memória (lib/dados.ts). Muitos campos são textos prontos
- * para exibição — quando o banco de dados chegar, eles passam a ser
- * calculados a partir de dados estruturados.
+ * Desde a Fase 2, clientes, processos e prazos são tabelas de verdade
+ * no banco (prisma/schema.prisma) — os tipos deles vêm do cliente
+ * gerado em lib/generated/prisma. Aqui ficam apenas os tipos do
+ * conteúdo demonstrativo (dashboard, atendimentos, intimações,
+ * tarefas e minutas), que vira funcionalidade real nas Fases 4 e 5.
  */
 
 export type TomSelo = "verde" | "ambar" | "vermelho" | "azul" | "cinza" | "navy";
@@ -55,41 +56,14 @@ export interface Produtividade {
   selo: Rotulo;
 }
 
-/* ---- Clientes e processos ------------------------------------------- */
-
-export interface Cliente {
-  id: string;
-  nome: string;
-  cpfCnpj: string;
-  area: string;
-  processos: string;
-  documentos: Rotulo;
-  situacao: Rotulo;
-  responsavel: string;
-}
+/* ---- Linha do tempo (usada em várias telas) --------------------------- */
 
 export interface EventoTimeline {
   quando: string;
   texto: string;
 }
 
-export interface Processo {
-  id: string;
-  numero: string;
-  cliente: string;
-  tribunal: string;
-  fase: Rotulo;
-  ultimoEvento: Rotulo | string;
-  destaque?: boolean;
-}
-
-export interface DetalheProcesso {
-  numero: string;
-  resumo: string;
-  timeline: EventoTimeline[];
-}
-
-/* ---- Intimações ------------------------------------------------------ */
+/* ---- Intimações ------------------------------------------------------- */
 
 export interface Intimacao {
   id: string;
@@ -108,28 +82,7 @@ export interface ItemAnalise {
   destaque?: string; // trecho em negrito ao final
 }
 
-/* ---- Prazos e agenda ------------------------------------------------- */
-
-export interface EventoAgenda {
-  texto: string;
-  tom: TomSelo;
-}
-
-export interface DiaAgenda {
-  dia: string;
-  eventos: EventoAgenda[];
-}
-
-export interface PrazoJudicial {
-  vencimento: string;
-  providencia: string;
-  processo: string;
-  responsavel: string;
-  status: Rotulo;
-  alertas: string;
-}
-
-/* ---- Tarefas (kanban) ------------------------------------------------ */
+/* ---- Tarefas (kanban) -------------------------------------------------- */
 
 export interface Tarefa {
   titulo: string;
@@ -143,7 +96,7 @@ export interface ColunaKanban {
   tarefas: Tarefa[];
 }
 
-/* ---- Atendimentos (WhatsApp) ----------------------------------------- */
+/* ---- Atendimentos (WhatsApp) -------------------------------------------- */
 
 export interface Mensagem {
   de: "cliente" | "escritorio";
@@ -173,16 +126,4 @@ export interface Conversa {
   checklist: ItemChecklist[];
   percentualDocs: number;
   perguntas: string[];
-}
-
-/* ---- Minutas ---------------------------------------------------------- */
-
-export interface ItemContexto {
-  texto: string;
-}
-
-export interface VersaoMinuta {
-  rotulo: Rotulo | "ia";
-  quando: string;
-  descricao: string;
 }
