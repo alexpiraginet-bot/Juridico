@@ -82,9 +82,12 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    usuários e credenciais de OAB (automação multiusuário); **login por
    e-mail+senha** (`lib/auth.ts`, scrypt + sessão em cookie httpOnly);
    **painel central** do super-admin (`/central`) que cadastra escritórios
-   (`Team`, com logo). Falta: dono gerindo a própria equipe, isolamento
-   (cada advogado vê só o seu), compartilhamento, gate do app inteiro e
-   auditoria.
+   (`Team`, com logo); **app inteiro atrás do login** (grupo `app/(app)/` +
+   `exigirUsuario`) com **navegação por papel**; **dono gere a própria
+   equipe** (usuários e credenciais escopados ao `teamId`); **isolamento**
+   (cada intimação tem dono; cada um vê só as suas); **compartilhamento**
+   (o dono libera a leitura de uma intimação a um colega do mesmo Team,
+   `CompartilhamentoIntimacao`). Falta: log de auditoria.
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
    causa do geobloqueio), importação para o banco (tabela `Intimacao`,

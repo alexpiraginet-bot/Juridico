@@ -102,10 +102,30 @@ model Intimacao {
   usuarioId            String?  @map("usuario_id")
   usuario              Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   criadoEm             DateTime @default(now()) @map("criado_em")
+  // Com quem o dono compartilhou esta publicação (colegas do mesmo Team).
+  compartilhamentos    CompartilhamentoIntimacao[]
 
   @@index([numeroProcesso])
   @@index([usuarioId])
   @@map("intimacoes")
+}
+
+// Fase 3 — compartilhamento. O dono de uma intimação pode liberar a leitura
+// para um colega do MESMO Team, sem abrir tudo para todos. É só o vínculo
+// (quem recebeu); quem compartilhou é sempre o dono da intimação. (intimacao,
+// usuario) é único para não compartilhar a mesma publicação duas vezes com a
+// mesma pessoa.
+model CompartilhamentoIntimacao {
+  id          String    @id @default(cuid())
+  intimacaoId String    @map("intimacao_id")
+  intimacao   Intimacao @relation(fields: [intimacaoId], references: [id], onDelete: Cascade)
+  usuarioId   String    @map("usuario_id") // destinatário (quem recebeu o acesso)
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadoEm    DateTime  @default(now()) @map("criado_em")
+
+  @@unique([intimacaoId, usuarioId])
+  @@index([usuarioId])
+  @@map("compartilhamentos_intimacao")
 }
 
 // Fase 3 — papéis de acesso. SUPERADMIN somos nós (a plataforma);
@@ -148,6 +168,8 @@ model Usuario {
   credenciais CredencialOab[]
   sessoes     Sessao[]
   intimacoes  Intimacao[]
+  // Publicações que outros donos compartilharam com este usuário.
+  intimacoesRecebidas CompartilhamentoIntimacao[]
 
   @@map("usuarios")
 }
