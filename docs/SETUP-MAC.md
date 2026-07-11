@@ -87,8 +87,10 @@ npm install
 npm run dev
 ```
 
-Abra <http://localhost:3000> — você deve ver o painel do Juridico. Para parar
-o servidor, volte ao Terminal e aperte `Ctrl + C`.
+Abra <http://localhost:3000> — você deve ver o dashboard do LexFlow
+("Bom dia, Dr. Gustavo"). O protótipo original também fica disponível em
+<http://localhost:3000/prototipo.html>. Para parar o servidor, volte ao
+Terminal e aperte `Ctrl + C`.
 
 ## 8. Editor de código (recomendado)
 
