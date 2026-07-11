@@ -14,41 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
-import { buscarTudoNoDjen } from "@/lib/djen/comunica";
-
-type ResultadoImport = { novas: number; recebidas: number; processos: number } | { erro: string };
-
-// Importa tudo o que a OAB tem no DJEN (todas as páginas — serve também
-// de backfill histórico dos processos anteriores).
-export async function importarIntimacoes(numeroOab: string, ufOab: string): Promise<ResultadoImport> {
-  const oab = numeroOab.replace(/\D/g, "");
-  const uf = (ufOab || "").toUpperCase();
-  if (!oab) return { erro: "Informe o número da OAB para importar." };
-
-  const r = await buscarTudoNoDjen(oab, uf);
-  if (r.erro) return { erro: r.erro };
-
-  const dados = r.comunicacoes.map((c) => ({
-    djenId: c.id,
-    numeroProcesso: c.numeroProcesso,
-    tribunal: c.tribunal || null,
-    tipo: c.tipo || null,
-    orgao: c.orgao || null,
-    classe: c.classe || null,
-    resumo: c.resumo || null,
-    teor: c.teor || null,
-    dataDisponibilizacao: c.data || null,
-    oab,
-    uf,
-  }));
-
-  try {
-    const gravadas = await bd.intimacao.createMany({ data: dados, skipDuplicates: true });
-    return { novas: gravadas.count, recebidas: dados.length, processos: r.processosUnicos.length };
-  } catch {
-    return { erro: "Não foi possível salvar no banco — confira a conexão do banco de dados." };
-  }
-}
+import { importarIntimacoes } from "@/lib/djen/importar";
 
 // Ação de formulário: importa e volta para /djen com o resultado na URL.
 export async function acaoImportarIntimacoes(dados: FormData) {

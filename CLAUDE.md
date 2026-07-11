@@ -81,7 +81,9 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 5. ⬜ Fase 3 — autenticação, perfis e auditoria.
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
-   causa do geobloqueio). Faltam: importar para o banco, captura
-   automática de hora em hora e o WhatsApp Business API dos atendimentos.
+   causa do geobloqueio), importação para o banco (tabela `Intimacao`,
+   dedup) e **captura automática diária** (cron da Vercel às 08h BRT /
+   11h UTC → `/api/djen/varrer`, protegida por `CRON_SECRET`). Falta: o
+   WhatsApp Business API dos atendimentos.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.
