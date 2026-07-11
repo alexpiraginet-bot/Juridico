@@ -80,19 +80,34 @@ git checkout claude/new-project-mac-setup-kf8bsx
 Depois que o PR for aceito no branch `main`, bastará `git checkout main` e
 `git pull origin main` para pegar as novidades.
 
-## 7. Instalar as dependências e rodar
+## 7. Instalar as dependências e conectar ao banco
 
 ```bash
-npm install
+npm install                 # dependências + cliente do banco
+npx vercel link             # 1ª vez: faça login e escolha o projeto "juridico"
+npx vercel env pull .env    # baixa a DATABASE_URL do banco na nuvem
+```
+
+O `.env` fica só na sua máquina (o git o ignora) — é ali que mora a
+senha do banco. Se quiser os dados de exemplo do protótipo no banco:
+
+```bash
+npx prisma db seed          # pode rodar mais de uma vez, não duplica
+```
+
+## 8. Rodar
+
+```bash
 npm run dev
 ```
 
 Abra <http://localhost:3000> — você deve ver o dashboard do LexFlow
-("Bom dia, Dr. Gustavo"). O protótipo original também fica disponível em
-<http://localhost:3000/prototipo.html>. Para parar o servidor, volte ao
-Terminal e aperte `Ctrl + C`.
+("Bom dia, Dr. Gustavo"), e as telas de Clientes, Processos e Prazos
+lendo o banco na nuvem (o mesmo do site publicado!). O protótipo
+original fica em <http://localhost:3000/prototipo.html>. Para parar o
+servidor, volte ao Terminal e aperte `Ctrl + C`.
 
-## 8. Editor de código (recomendado)
+## 9. Editor de código (recomendado)
 
 ```bash
 brew install --cask visual-studio-code

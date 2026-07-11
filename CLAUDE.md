@@ -19,15 +19,19 @@ O app em `app/` é a versão estruturada dele.
 ## Comandos
 
 ```bash
-npm run dev        # desenvolvimento em http://localhost:3000
-npm run build      # build de produção (também checa os tipos)
-npm run typecheck  # só a checagem de tipos
+npm run dev          # desenvolvimento em http://localhost:3000 (exige DATABASE_URL no .env)
+npm run build        # build de produção (também checa os tipos)
+npm run typecheck    # só a checagem de tipos
+npx prisma db seed   # semeia o banco com os dados do protótipo (idempotente)
+npx prisma migrate dev --name <nome>  # nova migração após mudar o schema
 ```
 
 ## Stack
 
 Next.js 15 (App Router) + React 19 + TypeScript estrito + Tailwind CSS 4
-(sem tailwind.config; tokens no bloco `@theme` de `app/globals.css`).
+(sem tailwind.config; tokens no bloco `@theme` de `app/globals.css`) +
+PostgreSQL na nuvem via Prisma 7 (`prisma/schema.prisma`; cliente gerado
+em `lib/generated/`, fora do git; conexão única em `lib/bd.ts`).
 
 ## Convenções — seguir sempre
 
@@ -44,8 +48,13 @@ Next.js 15 (App Router) + React 19 + TypeScript estrito + Tailwind CSS 4
 - Páginas são componentes de servidor; interatividade vive em componentes
   de cliente por tela (`PainelAtendimentos`, `PainelIntimacoes`,
   `QuadroTarefas`, `PainelMinutas`) + `useAviso` para os toasts.
-- O "mundo" dos dados fictícios é congelado em **10/07/2026**
-  (`lib/dados.ts`) — não introduzir datas dinâmicas até a Fase 2.
+- Telas de banco (clientes, processos, prazos): `force-dynamic`, leitura
+  via `bd` (`lib/bd.ts`) e escrita só por server actions em `lib/acoes/`
+  (validar → gravar → `revalidatePath` → `redirect`; erro volta por
+  `?erro=` na URL). Enums do banco são traduzidos em `lib/opcoes.ts`.
+- O "mundo" das telas de demonstração (dashboard, atendimentos,
+  intimações, tarefas, minutas) segue congelado em **10/07/2026**
+  (`lib/dados.ts`); datas dinâmicas são bem-vindas nas telas de banco.
 - Commits pequenos, mensagem "Passo N: ..." quando fizer parte da
   construção guiada, corpo explicando o porquê.
 - Ao concluir um passo relevante, atualizar `docs/PASSO-A-PASSO.md` e o
@@ -55,7 +64,8 @@ Next.js 15 (App Router) + React 19 + TypeScript estrito + Tailwind CSS 4
 
 1. ✅ Fase 1 — fundação Next.js.
 2. ✅ Fase 1.5 — unificação com o protótipo LexFlow (identidade + 8 telas).
-3. ⬜ Fase 2 — SQLite + Prisma, CRUD real.
+3. ✅ Fase 2 — PostgreSQL na nuvem + Prisma, CRUD real de clientes,
+   processos e prazos (com validação humana de prazos).
 4. ⬜ Fase 3 — autenticação, perfis e auditoria.
 5. ⬜ Fase 4 — integrações reais (WhatsApp Business API, DJEN/Comunica API).
 6. ⬜ Fase 5 — IA real via API do Claude (relato fático, análise de
