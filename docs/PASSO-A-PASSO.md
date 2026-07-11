@@ -685,12 +685,47 @@ O que mudou:
 
 ---
 
+## Passo 21 — a aba Intimações lê o banco real (e vira mobile-first)
+
+> Commit: `Passo 21: Intimações — lê a tabela real e layout mobile-first`
+
+A aba **Intimações** ainda mostrava dados de demonstração (João Pereira e
+companhia) numa tabela que, no celular, ficava espremida e ilegível. Este
+passo resolve as duas coisas.
+
+O que mudou:
+
+- **`app/intimacoes/page.tsx`** deixou de ler `lib/dados.ts` e passou a ler
+  a tabela real **`Intimacao`** — as publicações capturadas pela OAB no
+  DJEN. Ordena da mais recente para a mais antiga. Sem captura ainda? Um
+  estado vazio manda o usuário para *Meus processos* importar.
+- **Fim da tabela no celular.** No lugar dela, **cartões empilhados**: cada
+  publicação é um cartão que ocupa a largura toda, com número do processo,
+  tipo, tribunal, órgão·classe e uma prévia — e o cartão inteiro é o link
+  para a página de detalhe (teor completo + resumo da IA). É o padrão
+  *mobile-first*: numa tela estreita, uma coisa embaixo da outra, sem
+  rolagem lateral.
+- O componente de demonstração `PainelIntimacoes` foi removido — a tela
+  agora é um componente de servidor simples, que só lê e lista.
+
+**Detalhes que valem estudar:**
+
+- **Graduar da demonstração.** Intimações era uma das telas "congeladas em
+  10/07/2026"; agora é uma tela de banco de verdade, como Clientes e
+  Processos. O `CLAUDE.md` foi atualizado para refletir isso.
+- **Layout que pensa no polegar.** Tabelas são ótimas no desktop e ruins no
+  celular. Trocar por cartões que empilham é quase sempre o caminho para
+  telas estreitas — o conteúdo respira e o alvo do toque fica grande.
+
+---
+
 ## O que vem a seguir
 
 Ainda na **Fase 4**: ligar a **busca automática de hora em hora** do DJEN
-(captura sozinha os processos novos) — além do WhatsApp Business API para
-os atendimentos. E, quando fizer sentido, puxar os **autos completos** do
-PJe (com credenciais) para além dos andamentos e das intimações.
+(as publicações passam a chegar sozinhas, todo dia, e caem direto nesta
+aba) — além do WhatsApp Business API para os atendimentos. E, quando fizer
+sentido, puxar os **autos completos** do PJe (com credenciais) para além
+dos andamentos e das intimações.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de
