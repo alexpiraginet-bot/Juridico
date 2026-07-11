@@ -58,6 +58,14 @@ public/prototipo.html       # o protótipo original, intocado (especificação v
 docs/                       # guias e diário de construção
 ```
 
+## Publicação
+
+O repositório está conectado à Vercel (deploy contínuo):
+
+- **Produção** (branch `main`): <https://juridico-alexpiraginet-7738s-projects.vercel.app>
+- Cada branch/PR ganha automaticamente um endereço de pré-visualização.
+- O build é configurado por [`vercel.json`](vercel.json) (`framework: nextjs`).
+
 ## Documentação
 
 - **[docs/SETUP-MAC.md](docs/SETUP-MAC.md)** — preparar um Mac do zero, clonar e rodar o projeto.

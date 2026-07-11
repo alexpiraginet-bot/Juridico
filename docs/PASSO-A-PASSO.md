@@ -306,6 +306,35 @@ sempre registradas aqui.
 
 ---
 
+## Passo 10 — publicação na Vercel (deploy contínuo)
+
+> Commit: `Passo 10: publicação — vercel.json define o framework do build`
+
+O repositório foi conectado à Vercel, e isso liga o **deploy contínuo**:
+todo push no `main` publica a versão de produção, e todo push em um
+branch gera uma **pré-visualização** com endereço próprio. Merge do PR =
+site atualizado, sem passo manual.
+
+Só que os primeiros builds falharam todos, com o erro
+`No entrypoint found … add one of: app.js, index.js, server.js…`.
+O motivo: o projeto na Vercel foi criado quando o repositório ainda
+estava **vazio** (só o README), então ficou configurado como framework
+**"Node"** — que procura um arquivo de servidor para executar — em vez
+de **"Next.js"** — que roda `next build`. O código estava certo; a
+configuração do painel, não.
+
+A correção mora no repositório, não no painel: o arquivo `vercel.json`
+com `"framework": "nextjs"` diz à Vercel como construir o projeto, e a
+configuração **em código** vence a do painel. É a mesma filosofia dos
+outros arquivos de configuração do projeto: tudo versionado no git.
+
+**Lição do passo:** em deploy contínuo, o erro pode estar fora do seu
+código — leia o log do build de cima a baixo; a primeira linha de erro
+conta a história. E prefira configuração versionada (`vercel.json`) a
+cliques no painel: ela viaja com o projeto.
+
+---
+
 ## O que vem a seguir
 
 A Fase 2 troca `lib/dados.ts` por um banco **SQLite** acessado via
