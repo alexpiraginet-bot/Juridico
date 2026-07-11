@@ -1,26 +1,22 @@
 /*
- * Dados do protótipo LexFlow (public/prototipo.html), tipados.
+ * Dados de demonstração do protótipo LexFlow (public/prototipo.html).
  *
- * O "mundo" do protótipo é congelado em sexta-feira, 10/07/2026:
- * a citação foi publicada dia 09/07, o prazo de contestação vence
- * 31/07 e a agenda mostra a semana de 13 a 17/07. Quando o banco de
- * dados chegar (Fase 2), estes arquivos dão lugar a dados reais.
+ * Desde a Fase 2, clientes, processos e prazos vivem no banco de dados
+ * (lib/bd.ts + prisma/schema.prisma). Aqui ficam apenas os conteúdos
+ * das telas de demonstração — dashboard, atendimentos, intimações,
+ * tarefas e minutas — que viram funcionalidade real nas Fases 4 e 5
+ * (WhatsApp, DJEN e IA). O "mundo" fictício é congelado em 10/07/2026.
  */
 
 import type {
   AreaAtendimento,
-  Cliente,
   ColunaKanban,
   Compromisso,
   Conversa,
-  DetalheProcesso,
-  DiaAgenda,
   Intimacao,
   ItemAnalise,
   ItemAtencao,
   Kpi,
-  PrazoJudicial,
-  Processo,
   Produtividade,
   Rotulo,
 } from "./tipos";
@@ -131,117 +127,6 @@ export const produtividade: Produtividade[] = [
   },
 ];
 
-/* ---- Clientes --------------------------------------------------------- */
-
-export const clientes: Cliente[] = [
-  {
-    id: "c1",
-    nome: "Maria Santos",
-    cpfCnpj: "111.222.333-44",
-    area: "Trabalhista",
-    processos: "1 em análise",
-    documentos: { texto: "3 pendentes", tom: "ambar" },
-    situacao: { texto: "Em negociação", tom: "ambar" },
-    responsavel: "Dr. Gustavo",
-  },
-  {
-    id: "c2",
-    nome: "João Pereira",
-    cpfCnpj: "555.666.777-88",
-    area: "Cível",
-    processos: "2 ativos",
-    documentos: { texto: "completo", tom: "verde" },
-    situacao: { texto: "Contratado", tom: "verde" },
-    responsavel: "Dr. Carlos",
-  },
-  {
-    id: "c3",
-    nome: "Transportes Vitória Ltda.",
-    cpfCnpj: "12.345.678/0001-90",
-    area: "Trabalhista",
-    processos: "6 ativos",
-    documentos: { texto: "completo", tom: "verde" },
-    situacao: { texto: "Contratado", tom: "verde" },
-    responsavel: "Dr. Gustavo",
-  },
-  {
-    id: "c4",
-    nome: "Helena Costa",
-    cpfCnpj: "999.888.777-66",
-    area: "Família",
-    processos: "1 ativo",
-    documentos: { texto: "completo", tom: "verde" },
-    situacao: { texto: "Encerrado", tom: "cinza" },
-    responsavel: "Dr. Carlos",
-  },
-];
-
-/* ---- Processos --------------------------------------------------------- */
-
-export const filtrosProcessos: Rotulo[] = [
-  { texto: "Todos (142)", tom: "navy" },
-  { texto: "Trabalhista (61)", tom: "cinza" },
-  { texto: "Cível (44)", tom: "cinza" },
-  { texto: "Família (22)", tom: "cinza" },
-  { texto: "Com prazo aberto (7)", tom: "cinza" },
-  { texto: "Aguardando sentença (12)", tom: "cinza" },
-];
-
-export const processos: Processo[] = [
-  {
-    id: "p1",
-    numero: "0801234-55.2026.8.08.0024",
-    cliente: "João Pereira",
-    tribunal: "TJES · 3ª Vara Cível",
-    fase: { texto: "Conhecimento", tom: "azul" },
-    ultimoEvento: { texto: "Citação — contestar até 31/07", tom: "vermelho" },
-    destaque: true,
-  },
-  {
-    id: "p2",
-    numero: "0805566-21.2026.5.17.0004",
-    cliente: "Transportes Vitória",
-    tribunal: "TRT-17 · 4ª VT",
-    fase: { texto: "Instrução", tom: "azul" },
-    ultimoEvento: "Audiência designada 13/07",
-  },
-  {
-    id: "p3",
-    numero: "0803344-12.2025.8.08.0035",
-    cliente: "Helena Costa",
-    tribunal: "TJES · 1ª Vara Família",
-    fase: { texto: "Sentença", tom: "verde" },
-    ultimoEvento: "Sentença procedente 02/07",
-  },
-  {
-    id: "p4",
-    numero: "0808877-90.2025.5.17.0141",
-    cliente: "Transportes Vitória",
-    tribunal: "TRT-17 · 14ª VT",
-    fase: { texto: "Recursal", tom: "cinza" },
-    ultimoEvento: "Contrarrazões protocoladas",
-  },
-];
-
-export const detalheProcesso: DetalheProcesso = {
-  numero: "0801234-55.2026.8.08.0024",
-  resumo:
-    "Ação de cobrança · Valor da causa R$ 85.000 · Cliente no polo passivo · Dr. Gustavo + Dr. Carlos",
-  timeline: [
-    { quando: "10/07 · IA", texto: "Minuta de contestação gerada, aguardando revisão" },
-    {
-      quando: "09/07 · DJEN",
-      texto: "Citação capturada e vinculada automaticamente · prazo sugerido 31/07",
-    },
-    {
-      quando: "08/07 · WhatsApp",
-      texto: "Cliente enviou contrato assinado (PDF classificado pela IA)",
-    },
-    { quando: "05/07 · Sistema", texto: "Processo importado no onboarding via OAB" },
-    { quando: "28/06 · Tribunal", texto: "Distribuição por sorteio · 3ª Vara Cível de Vitória" },
-  ],
-};
-
 /* ---- Intimações --------------------------------------------------------- */
 
 export const intimacoes: Intimacao[] = [
@@ -315,49 +200,6 @@ export const analiseIntimacao: ItemAnalise[] = [
   {
     titulo: "Risco apontado",
     texto: "Cliente mencionou na conversa ter pago 3 parcelas — verificar antes de definir a tese.",
-  },
-];
-
-/* ---- Prazos & agenda ----------------------------------------------------- */
-
-export const agendaSemana: DiaAgenda[] = [
-  {
-    dia: "SEG 13/07",
-    eventos: [
-      { texto: "09:30 Audiência instrução · TRT-17", tom: "azul" },
-      { texto: "Conferir docs Maria Santos", tom: "verde" },
-    ],
-  },
-  { dia: "TER 14/07", eventos: [{ texto: "14:00 Reunião João Pereira", tom: "azul" }] },
-  { dia: "QUA 15/07", eventos: [{ texto: "Revisar minuta contestação (interno)", tom: "ambar" }] },
-  { dia: "QUI 16/07", eventos: [] },
-  { dia: "SEX 17/07", eventos: [{ texto: "Retorno cliente Helena (sentença)", tom: "verde" }] },
-];
-
-export const prazosJudiciais: PrazoJudicial[] = [
-  {
-    vencimento: "31/07",
-    providencia: "Contestação",
-    processo: "0801234-55 · João Pereira",
-    responsavel: "Dr. Gustavo",
-    status: { texto: "pendente de validação", tom: "ambar" },
-    alertas: "D-7 · D-2 · véspera · sem minuta",
-  },
-  {
-    vencimento: "05/08",
-    providencia: "Contrarrazões de apelação",
-    processo: "0808877-90 · Transportes Vitória",
-    responsavel: "Dr. Carlos",
-    status: { texto: "validado", tom: "verde" },
-    alertas: "D-7 · D-2 · véspera",
-  },
-  {
-    vencimento: "12/08",
-    providencia: "Manifestação sobre laudo",
-    processo: "0805566-21 · Transportes Vitória",
-    responsavel: "Dr. Gustavo",
-    status: { texto: "validado", tom: "verde" },
-    alertas: "D-5 · véspera",
   },
 ];
 

@@ -1,77 +1,139 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { BotaoExcluir } from "@/components/BotaoExcluir";
+import { ChipPrazo } from "@/components/ChipPrazo";
 import { Selo } from "@/components/Selo";
-import { agendaSemana, prazosJudiciais } from "@/lib/dados";
-import type { TomSelo } from "@/lib/tipos";
+import { concluirPrazo, excluirPrazo, validarPrazo } from "@/lib/acoes/prazos";
+import { bd } from "@/lib/bd";
+import { formatarData } from "@/lib/formatar";
 
 export const metadata: Metadata = { title: "Prazos" };
+export const dynamic = "force-dynamic";
 
-const corEvento: Record<TomSelo, string> = {
-  verde: "bg-selo-verde text-verde-escuro",
-  ambar: "bg-selo-ambar text-ambar",
-  vermelho: "bg-selo-vermelho text-vermelho",
-  azul: "bg-selo-azul text-azul",
-  cinza: "bg-selo-cinza text-[#666666]",
-  navy: "bg-selo-navy text-navy",
-};
+export default async function PaginaPrazos({
+  searchParams,
+}: {
+  searchParams: Promise<{ erro?: string }>;
+}) {
+  const { erro } = await searchParams;
+  const prazos = await bd.prazo.findMany({
+    include: { processo: { select: { numero: true, titulo: true } } },
+    orderBy: { vencimento: "asc" },
+  });
 
-export default function PaginaPrazos() {
+  const pendentes = prazos.filter((prazo) => !prazo.concluido);
+  const aguardandoValidacao = pendentes.filter((prazo) => !prazo.validado).length;
+  const concluidos = prazos.filter((prazo) => prazo.concluido).reverse();
+
   return (
     <div>
-      <h1 className="text-lg font-bold text-navy">Prazos & Agenda</h1>
-      <p className="mb-4 mt-0.5 text-xs text-suave">
-        Semana de 13 a 17 de julho · prazos validados entram automaticamente aqui
-      </p>
-
-      <div className="mb-3.5 rounded-lg border border-[#C9DAEA] bg-selo-azul px-3 py-2 text-[11.5px] text-azul">
-        ⏳ 1 prazo aguardando validação na aba Intimações — prazos não validados não entram na
-        agenda oficial.
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-navy">Prazos & Agenda</h1>
+          <p className="mb-4 mt-0.5 text-xs text-suave">
+            {pendentes.length === 0
+              ? "Agenda oficial do escritório, gravada no banco de dados."
+              : `${pendentes.length} prazo${pendentes.length === 1 ? "" : "s"} em aberto, do mais urgente para o mais distante.`}
+          </p>
+        </div>
+        <Link
+          href="/prazos/novo"
+          className="rounded-lg bg-verde px-3.5 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro"
+        >
+          + Novo prazo
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-        {agendaSemana.map((dia) => (
-          <div key={dia.dia} className="min-h-[130px] rounded-xl border border-borda bg-superficie p-2">
-            <h6 className="mb-1.5 text-[11px] font-semibold text-suave">{dia.dia}</h6>
-            {dia.eventos.map((evento) => (
-              <div
-                key={evento.texto}
-                className={`mb-1.5 rounded-md px-2 py-1 text-[11px] font-semibold ${corEvento[evento.tom]}`}
+      {erro && (
+        <p className="mb-3.5 rounded-lg border border-[#E5C4C0] bg-selo-vermelho px-3 py-2 text-[12.5px] font-semibold text-vermelho">
+          ⚠️ {erro}
+        </p>
+      )}
+
+      {aguardandoValidacao > 0 && (
+        <div className="mb-3.5 rounded-lg border border-[#C9DAEA] bg-selo-azul px-3 py-2 text-[11.5px] text-azul">
+          ⏳ {aguardandoValidacao === 1 ? "1 prazo aguarda" : `${aguardandoValidacao} prazos aguardam`}{" "}
+          validação de um advogado — prazos não validados não valem como agenda oficial.
+        </div>
+      )}
+
+      {pendentes.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-borda bg-superficie p-10 text-center">
+          <p className="text-[15px] font-semibold text-navy">Nenhum prazo em aberto</p>
+          <p className="mx-auto mt-1 max-w-md text-[12.5px] text-suave">
+            Cadastre um prazo vinculado a um processo — ou valide o prazo sugerido pela IA
+            na tela de{" "}
+            <Link href="/intimacoes" className="font-semibold text-verde-escuro underline">
+              Intimações
+            </Link>
+            .
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-borda bg-superficie">
+          <ul>
+            {pendentes.map((prazo) => (
+              <li
+                key={prazo.id}
+                className="flex flex-wrap items-center gap-3 border-b border-plano-2 px-4 py-3.5 last:border-b-0"
               >
-                {evento.texto}
-              </div>
+                <div className="w-24 shrink-0 rounded-lg border border-borda bg-plano px-2 py-1.5 text-center">
+                  <p className="text-[13px] font-bold tabular-nums">{formatarData(prazo.vencimento)}</p>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-bold">{prazo.descricao}</p>
+                  <p className="mt-0.5 truncate text-xs text-suave">
+                    <span className="font-mono">{prazo.processo.numero}</span> · {prazo.processo.titulo}
+                    {prazo.responsavel && <> · {prazo.responsavel}</>}
+                  </p>
+                </div>
+                <ChipPrazo vencimento={prazo.vencimento} />
+                <Selo tom={prazo.validado ? "verde" : "ambar"}>
+                  {prazo.validado ? "Validado" : "Pendente de validação"}
+                </Selo>
+                <span className="flex shrink-0 items-center gap-2">
+                  {!prazo.validado && (
+                    <form action={validarPrazo.bind(null, prazo.id)}>
+                      <button className="rounded-lg bg-verde px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-verde-escuro">
+                        ✔ Validar
+                      </button>
+                    </form>
+                  )}
+                  <form action={concluirPrazo.bind(null, prazo.id)}>
+                    <button className="rounded-lg border border-borda px-2.5 py-1 text-[11px] font-semibold hover:bg-plano">
+                      Concluir
+                    </button>
+                  </form>
+                  <BotaoExcluir
+                    acao={excluirPrazo.bind(null, prazo.id)}
+                    confirmacao={`Excluir o prazo "${prazo.descricao}"?`}
+                  />
+                </span>
+              </li>
             ))}
-          </div>
-        ))}
-      </div>
+          </ul>
+        </div>
+      )}
 
-      <div className="mt-3.5 overflow-x-auto rounded-xl border border-borda bg-superficie p-4">
-        <h3 className="mb-3 text-[13px] font-bold text-navy">⏱️ Prazos judiciais em aberto</h3>
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-borda text-left text-[11px] uppercase tracking-wide text-suave">
-              <th className="px-2.5 py-2 font-semibold">Vencimento</th>
-              <th className="px-2.5 py-2 font-semibold">Providência</th>
-              <th className="px-2.5 py-2 font-semibold">Processo</th>
-              <th className="px-2.5 py-2 font-semibold">Responsável</th>
-              <th className="px-2.5 py-2 font-semibold">Status</th>
-              <th className="px-2.5 py-2 font-semibold">Alertas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {prazosJudiciais.map((prazo) => (
-              <tr key={prazo.processo + prazo.vencimento} className="border-b border-plano-2 last:border-b-0">
-                <td className="px-2.5 py-2.5 font-bold">{prazo.vencimento}</td>
-                <td className="px-2.5 py-2.5">{prazo.providencia}</td>
-                <td className="px-2.5 py-2.5">{prazo.processo}</td>
-                <td className="px-2.5 py-2.5">{prazo.responsavel}</td>
-                <td className="px-2.5 py-2.5">
-                  <Selo tom={prazo.status.tom}>{prazo.status.texto}</Selo>
-                </td>
-                <td className="whitespace-nowrap px-2.5 py-2.5 text-suave">{prazo.alertas}</td>
-              </tr>
+      {concluidos.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-sm font-bold text-navy">Concluídos</h2>
+          <ul className="mt-2 rounded-xl border border-borda bg-superficie">
+            {concluidos.map((prazo) => (
+              <li
+                key={prazo.id}
+                className="flex items-center gap-3 border-b border-plano-2 px-4 py-2.5 text-[12.5px] text-suave last:border-b-0"
+              >
+                <span aria-hidden>✔</span>
+                <span className="tabular-nums">{formatarData(prazo.vencimento)}</span>
+                <span className="min-w-0 truncate">
+                  {prazo.descricao} · <span className="font-mono">{prazo.processo.numero}</span>
+                </span>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

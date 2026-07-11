@@ -335,12 +335,87 @@ cliques no painel: ela viaja com o projeto.
 
 ---
 
+## Passo 11 — banco de dados na nuvem (Prisma + PostgreSQL)
+
+> Commit: `Passo 11: banco de dados na nuvem — Prisma + PostgreSQL`
+
+**Por que na nuvem?** O site roda na Vercel em funções que nascem e
+morrem a cada requisição, sem disco persistente — um arquivo de banco
+local sumiria a cada deploy. A solução é o banco virar um serviço: um
+**PostgreSQL** hospedado (criado pelo painel da Vercel, aba Storage),
+que o app acessa pela variável de ambiente `DATABASE_URL`. O mesmo
+banco atende o site publicado e o `npm run dev` no seu Mac.
+
+As peças, na ordem em que trabalham:
+
+1. **`prisma/schema.prisma`** — a fonte da verdade: cada `model`
+   (Cliente, Processo, Prazo) descreve uma tabela, com relações
+   (processo pertence a cliente; prazo pertence a processo) e enums
+   (área, fase).
+2. **Migrações** (`prisma/migrations/`) — `npx prisma migrate dev` compara
+   o schema com o banco e gera o SQL da diferença, versionado no git.
+   É o "histórico de commits" do banco.
+3. **Cliente gerado** (`lib/generated/`, fora do git) — `prisma generate`
+   escreve uma biblioteca TypeScript sob medida para o nosso schema:
+   `bd.cliente.findMany(...)` já sabe quais campos existem. Recriado a
+   cada `npm install` (script `postinstall`).
+4. **`lib/bd.ts`** — a conexão única (no Prisma 7, via adaptador do
+   driver `pg`).
+5. **Semente** (`prisma/seed.ts`) — grava os dados fictícios do
+   protótipo com `upsert` (idempotente: rode `npx prisma db seed`
+   quantas vezes quiser, nada duplica).
+
+No build da Vercel, `scripts/migrar-se-configurado.mjs` aplica as
+migrações quando o `DATABASE_URL` existe — e, em produção sem banco,
+falha de propósito com uma mensagem que explica o que criar.
+
+---
+
+## Passo 12 — cadastro real: clientes, processos e prazos
+
+> Commit: `Passo 12: cadastro real — telas e ações de clientes, processos e prazos`
+
+O CRUD (criar, ler, atualizar, excluir) chegou. A engrenagem nova são as
+**server actions** (`lib/acoes/`): funções marcadas com `"use server"`
+que o formulário chama direto — sem API manual. O ciclo de vida é sempre
+o mesmo e vale a pena decorar:
+
+```
+<form action={criarCliente}>  →  valida os campos
+                              →  grava no banco (Prisma)
+                              →  revalidatePath("/clientes")  (limpa o cache da listagem)
+                              →  redirect("/clientes")        (volta para a lista)
+```
+
+Erros fazem o caminho inverso pela URL (`?erro=CPF já cadastrado`) e a
+tela mostra a mensagem — funciona até com JavaScript desligado.
+
+Outras novidades para estudar:
+
+- **`export const dynamic = "force-dynamic"`** nas telas de banco: elas
+  consultam o PostgreSQL a cada acesso (aparecem como `ƒ` no build),
+  enquanto as telas de demonstração seguem estáticas (`○`).
+- **Filtros reais** em Processos: os chips por área saem de um
+  `groupBy` no banco, e o filtro viaja pela URL (`?area=TRABALHISTA`).
+- **Validação humana de verdade**: prazo criado pela "IA" nasce com o
+  selo âmbar "Pendente de validação"; o botão ✔ Validar (uma server
+  action) o promove à agenda oficial. E o botão da tela de Intimações
+  agora **grava mesmo**: valide lá e veja o prazo aparecer na aba Prazos.
+- **Datas dinâmicas liberadas**: com dados reais, os chips "faltam N
+  dias" calculam de verdade — o mundo congelado em 10/07/2026 agora
+  vale só para as telas de demonstração.
+
+**Como foi verificado:** além do build e da checagem de tipos, o
+formulário de novo cliente foi submetido por HTTP puro (sem JavaScript)
+— resposta 303, registro no banco, e o caminho de erro de CPF duplicado
+voltando com a mensagem certa na URL.
+
+---
+
 ## O que vem a seguir
 
-A Fase 2 troca `lib/dados.ts` por um banco **SQLite** acessado via
-**Prisma** e adiciona os primeiros formulários de verdade (cadastrar
-cliente, processo e prazo). É também quando ações como "validar prazo"
-passam a valer para o sistema inteiro, não só para a tela aberta. Nas
-fases seguintes entram autenticação e equipe, as integrações reais
-(WhatsApp Business API, DJEN/Comunica API) e a IA de verdade via API do
-Claude — sempre com validação humana, como o protótipo promete.
+Fase 3: autenticação (login), perfis por função e o log de auditoria —
+"quem validou este prazo, e quando?". Depois, as integrações reais
+(WhatsApp Business API e DJEN/Comunica API na Fase 4) e a IA de verdade
+via API do Claude (Fase 5), sempre com validação humana, como o
+protótipo promete desde a primeira tela.

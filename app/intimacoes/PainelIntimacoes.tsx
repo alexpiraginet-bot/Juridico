@@ -4,21 +4,33 @@
  * O coração do LexFlow: a intimação chega classificada, a IA analisa
  * e sugere o prazo com fundamento legal — mas nada entra na agenda
  * sem a validação expressa do advogado (clique em "Validar prazo").
+ *
+ * Desde a Fase 2 a validação é real: a server action grava o prazo
+ * no banco de dados e ele passa a aparecer na aba Prazos.
  */
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { useAviso } from "@/components/useAviso";
+import { validarPrazoDaCitacao } from "@/lib/acoes/prazos";
 import { analiseIntimacao, intimacoes, teorPublicacao } from "@/lib/dados";
 
 export function PainelIntimacoes() {
   const { avisar, elemento } = useAviso();
   const [prazoValidado, setPrazoValidado] = useState(false);
+  const [validando, iniciarValidacao] = useTransition();
 
   function validarPrazo() {
-    setPrazoValidado(true);
-    avisar("✅ Prazo validado → agenda atualizada, responsável notificado, auditoria registrada");
+    iniciarValidacao(async () => {
+      const resultado = await validarPrazoDaCitacao();
+      if (resultado.ok) {
+        setPrazoValidado(true);
+        avisar("✅ Prazo validado e gravado na agenda oficial — confira na aba Prazos");
+      } else {
+        avisar(`⚠️ ${resultado.erro}`);
+      }
+    });
   }
 
   return (
@@ -93,10 +105,14 @@ export function PainelIntimacoes() {
           <button
             type="button"
             onClick={validarPrazo}
-            disabled={prazoValidado}
+            disabled={prazoValidado || validando}
             className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro disabled:opacity-60"
           >
-            {prazoValidado ? "✔ Prazo validado" : "✔ Validar prazo (31/07)"}
+            {prazoValidado
+              ? "✔ Prazo validado"
+              : validando
+                ? "Validando…"
+                : "✔ Validar prazo (31/07)"}
           </button>
           <button
             type="button"
