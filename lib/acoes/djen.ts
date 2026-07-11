@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
 import { exigirUsuario } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 import { importarIntimacoes } from "@/lib/djen/importar";
 
 // Ação de formulário: importa e volta para /djen com o resultado na URL.
@@ -32,6 +33,13 @@ export async function acaoImportarIntimacoes(dados: FormData) {
   } else {
     q.set("novas", String(r.novas));
     q.set("recebidas", String(r.recebidas));
+    await registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioNome: usuario.nome,
+      teamId: usuario.teamId,
+      acao: "intimacao.importada",
+      detalhe: `importou ${r.novas} nova(s) de ${r.recebidas} pela OAB ${oab}/${uf}`,
+    });
   }
 
   revalidatePath("/djen");

@@ -22,6 +22,22 @@ export function formatarDataCurta(data: Date): string {
   });
 }
 
+/*
+ * Data + hora para carimbos reais (o log de auditoria grava o instante, não
+ * uma "data pura"). Por isso mostramos no fuso de Brasília (America/Sao_Paulo),
+ * e não em UTC.
+ */
+export function formatarDataHora(data: Date): string {
+  return data.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
 /** Quantos dias faltam até o vencimento (negativo = já venceu). */
 export function diasAte(vencimento: Date): number {
   const agora = new Date();

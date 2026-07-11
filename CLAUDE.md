@@ -78,16 +78,17 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 4. 🟡 Fase 5 (em andamento) — IA real via API do Claude nas minutas, no
    resumo de processos (andamentos do DataJud) e no resumo de intimações
    do DJEN. Falta: relato fático dos atendimentos por IA.
-5. 🟡 Fase 3 (em andamento) — multi-inquilino com login. Já feito:
-   usuários e credenciais de OAB (automação multiusuário); **login por
-   e-mail+senha** (`lib/auth.ts`, scrypt + sessão em cookie httpOnly);
-   **painel central** do super-admin (`/central`) que cadastra escritórios
-   (`Team`, com logo); **app inteiro atrás do login** (grupo `app/(app)/` +
-   `exigirUsuario`) com **navegação por papel**; **dono gere a própria
-   equipe** (usuários e credenciais escopados ao `teamId`); **isolamento**
-   (cada intimação tem dono; cada um vê só as suas); **compartilhamento**
-   (o dono libera a leitura de uma intimação a um colega do mesmo Team,
-   `CompartilhamentoIntimacao`). Falta: log de auditoria.
+5. ✅ Fase 3 — multi-inquilino com login. **login por e-mail+senha**
+   (`lib/auth.ts`, scrypt + sessão em cookie httpOnly); **painel central**
+   do super-admin (`/central`) que cadastra escritórios (`Team`, com logo);
+   **app inteiro atrás do login** (grupo `app/(app)/` + `exigirUsuario`) com
+   **navegação por papel**; **dono gere a própria equipe** (usuários e
+   credenciais escopados ao `teamId`); **isolamento** (cada intimação tem
+   dono; cada um vê só as suas); **compartilhamento** (o dono libera a
+   leitura de uma intimação a um colega do mesmo Team,
+   `CompartilhamentoIntimacao`); **log de auditoria** (`RegistroAuditoria`
+   append-only, `lib/auditoria.ts`; tela `/auditoria` escopada por papel —
+   dono vê o escritório, super-admin vê a plataforma).
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
    causa do geobloqueio), importação para o banco (tabela `Intimacao`,

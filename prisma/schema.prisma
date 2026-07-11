@@ -143,11 +143,12 @@ enum PapelUsuario {
 // logo próprios (identidade dentro do app). Nós criamos os Teams no painel
 // central; cada Team cadastra seus próprios usuários.
 model Team {
-  id       String    @id @default(cuid())
-  nome     String
-  logoUrl  String?   @map("logo_url")
-  criadoEm DateTime  @default(now()) @map("criado_em")
-  usuarios Usuario[]
+  id         String              @id @default(cuid())
+  nome       String
+  logoUrl    String?             @map("logo_url")
+  criadoEm   DateTime            @default(now()) @map("criado_em")
+  usuarios   Usuario[]
+  auditorias RegistroAuditoria[]
 
   @@map("teams")
 }
@@ -170,6 +171,7 @@ model Usuario {
   intimacoes  Intimacao[]
   // Publicações que outros donos compartilharam com este usuário.
   intimacoesRecebidas CompartilhamentoIntimacao[]
+  auditorias          RegistroAuditoria[]
 
   @@map("usuarios")
 }
@@ -202,4 +204,24 @@ model CredencialOab {
 
   @@unique([numero, uf])
   @@map("credenciais_oab")
+}
+
+// Fase 3 — log de auditoria. Registro append-only de "quem fez o quê, e
+// quando". O nome do autor fica gravado (`usuarioNome`) para o log continuar
+// legível mesmo se o usuário for removido depois (a FK vira nula, o histórico
+// permanece). `teamId` nulo = ação de plataforma (super-admin).
+model RegistroAuditoria {
+  id          String   @id @default(cuid())
+  usuarioId   String?  @map("usuario_id")
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  usuarioNome String   @map("usuario_nome") // quem agiu, no momento da ação
+  teamId      String?  @map("team_id")
+  team        Team?    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  acao        String // rótulo curto, ex.: "prazo.validado", "intimacao.compartilhada"
+  detalhe     String? // texto legível, ex.: "validou o prazo 'Contestação'"
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  @@index([teamId, criadoEm])
+  @@index([usuarioId])
+  @@map("registros_auditoria")
 }

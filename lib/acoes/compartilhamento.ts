@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
 import { exigirUsuario } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function texto(dados: FormData, campo: string): string {
   return String(dados.get(campo) ?? "").trim();
@@ -27,6 +28,8 @@ export async function compartilharIntimacao(dados: FormData) {
   const destino = `/intimacoes/${intimacaoId}`;
 
   let erro: string | null = null;
+  let numeroProcesso = "";
+  let colegaNome = "";
   if (!intimacaoId || !destinatarioId) {
     erro = "Escolha um colega para compartilhar.";
   } else if (destinatarioId === usuario.id) {
@@ -37,11 +40,11 @@ export async function compartilharIntimacao(dados: FormData) {
     // Só o dono compartilha; o destinatário tem de ser da mesma equipe.
     const dono = await bd.intimacao.findFirst({
       where: { id: intimacaoId, usuarioId: usuario.id },
-      select: { id: true },
+      select: { numeroProcesso: true },
     });
     const colega = await bd.usuario.findFirst({
       where: { id: destinatarioId, teamId: usuario.teamId },
-      select: { id: true },
+      select: { nome: true },
     });
     if (!dono) {
       erro = "Só o dono da publicação pode compartilhá-la.";
@@ -54,6 +57,8 @@ export async function compartilharIntimacao(dados: FormData) {
           update: {},
           create: { intimacaoId, usuarioId: destinatarioId },
         });
+        numeroProcesso = dono.numeroProcesso;
+        colegaNome = colega.nome;
       } catch {
         erro = "Não foi possível compartilhar — verifique a conexão com o banco.";
       }
@@ -61,6 +66,13 @@ export async function compartilharIntimacao(dados: FormData) {
   }
 
   if (erro) redirect(`${destino}?erro=${encodeURIComponent(erro)}`);
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioNome: usuario.nome,
+    teamId: usuario.teamId,
+    acao: "intimacao.compartilhada",
+    detalhe: `compartilhou a publicação ${numeroProcesso || "(sem número)"} com ${colegaNome}`,
+  });
   revalidatePath(destino);
   revalidatePath("/intimacoes");
   redirect(destino);
@@ -77,14 +89,31 @@ export async function revogarCompartilhamento(dados: FormData) {
     where: { id: intimacaoId, usuarioId: usuario.id },
     select: { id: true },
   });
+  let revogado: string | null = null;
   if (dono) {
     try {
-      await bd.compartilhamentoIntimacao.deleteMany({
+      const r = await bd.compartilhamentoIntimacao.deleteMany({
         where: { intimacaoId, usuarioId: destinatarioId },
       });
+      if (r.count > 0) {
+        const colega = await bd.usuario.findUnique({
+          where: { id: destinatarioId },
+          select: { nome: true },
+        });
+        revogado = colega?.nome ?? "um colega";
+      }
     } catch {
       // silencioso: a próxima renderização mostra o estado real.
     }
+  }
+  if (revogado) {
+    await registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioNome: usuario.nome,
+      teamId: usuario.teamId,
+      acao: "intimacao.revogada",
+      detalhe: `revogou o acesso de ${revogado}`,
+    });
   }
 
   revalidatePath(destino);
