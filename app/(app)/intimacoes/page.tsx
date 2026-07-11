@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { bd } from "@/lib/bd";
+import { exigirUsuario } from "@/lib/auth";
 import { formatarData } from "@/lib/formatar";
 
 export const metadata: Metadata = { title: "Intimações" };
@@ -14,10 +15,14 @@ function dataDjen(iso: string | null): string {
 }
 
 export default async function PaginaIntimacoes() {
+  const usuario = await exigirUsuario();
+
   let intimacoes: Awaited<ReturnType<typeof bd.intimacao.findMany>> = [];
   let semBanco = false;
   try {
+    // Isolamento: cada usuário vê só as suas intimações.
     intimacoes = await bd.intimacao.findMany({
+      where: { usuarioId: usuario.id },
       orderBy: [{ dataDisponibilizacao: "desc" }, { criadoEm: "desc" }],
       take: 100,
     });

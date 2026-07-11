@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { bd } from "@/lib/bd";
+import { exigirUsuario } from "@/lib/auth";
 import { iaConfigurada, resumirIntimacaoComClaude } from "@/lib/ia";
 
 export const metadata: Metadata = { title: "Publicação · DJEN" };
@@ -88,10 +89,12 @@ function CarregandoResumo() {
 }
 
 export default async function PaginaIntimacao({ params }: { params: Promise<{ id: string }> }) {
+  const usuario = await exigirUsuario();
   const { id } = await params;
 
   const intimacao = await bd.intimacao.findUnique({ where: { id } });
-  if (!intimacao) notFound();
+  // Isolamento: só o dono da captura abre a publicação.
+  if (!intimacao || intimacao.usuarioId !== usuario.id) notFound();
 
   const teor = intimacao.teor ?? intimacao.resumo ?? "";
 

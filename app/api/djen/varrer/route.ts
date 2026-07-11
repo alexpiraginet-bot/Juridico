@@ -26,15 +26,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, erro: "não autorizado" }, { status: 401 });
   }
 
-  // Quem varrer: todas as credenciais ATIVAS cadastradas. Se ainda não há
-  // nenhuma, cai no ADVOGADO_OAB/UF do ambiente (compatibilidade).
-  let alvos: { oab: string; uf: string }[] = [];
+  // Quem varrer: todas as credenciais ATIVAS cadastradas, cada uma com o
+  // seu dono (para marcar as intimações). Se ainda não há nenhuma, cai no
+  // ADVOGADO_OAB/UF do ambiente (compatibilidade).
+  let alvos: { oab: string; uf: string; usuarioId: string | null }[] = [];
   try {
     const credenciais = await bd.credencialOab.findMany({
       where: { ativa: true },
-      select: { numero: true, uf: true },
+      select: { numero: true, uf: true, usuarioId: true },
     });
-    alvos = credenciais.map((c) => ({ oab: c.numero, uf: c.uf }));
+    alvos = credenciais.map((c) => ({ oab: c.numero, uf: c.uf, usuarioId: c.usuarioId }));
   } catch {
     // Sem banco/tabela ainda: seguimos para o fallback do ambiente.
   }
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
   if (alvos.length === 0) {
     const oab = (process.env.ADVOGADO_OAB ?? "").replace(/\D/g, "");
     const uf = (process.env.ADVOGADO_UF ?? "").toUpperCase();
-    if (oab && uf) alvos = [{ oab, uf }];
+    if (oab && uf) alvos = [{ oab, uf, usuarioId: null }];
   }
 
   if (alvos.length === 0) {
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
   // Uma credencial por vez (dedup no banco garante que não repete).
   const resultados = [];
   for (const alvo of alvos) {
-    const r = await importarIntimacoes(alvo.oab, alvo.uf);
+    const r = await importarIntimacoes(alvo.oab, alvo.uf, alvo.usuarioId);
     resultados.push({ oab: alvo.oab, uf: alvo.uf, ...r });
   }
 

@@ -14,14 +14,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
+import { exigirUsuario } from "@/lib/auth";
 import { importarIntimacoes } from "@/lib/djen/importar";
 
 // Ação de formulário: importa e volta para /djen com o resultado na URL.
+// As intimações ficam com o dono = usuário logado (isolamento).
 export async function acaoImportarIntimacoes(dados: FormData) {
+  const usuario = await exigirUsuario();
   const oab = String(dados.get("oab") ?? "").replace(/\D/g, "");
   const uf = (String(dados.get("uf") ?? "ES") || "ES").toUpperCase();
 
-  const r = await importarIntimacoes(oab, uf);
+  const r = await importarIntimacoes(oab, uf, usuario.id);
 
   const q = new URLSearchParams({ oab, uf, buscar: "1" });
   if ("erro" in r) {
@@ -39,6 +42,7 @@ export async function acaoImportarIntimacoes(dados: FormData) {
 // de detalhe, onde aparece o teor completo e o resumo da IA. Os dados vêm
 // nos campos ocultos do formulário do cartão (o teor completo inclusive).
 export async function acaoAbrirIntimacao(dados: FormData) {
+  const usuario = await exigirUsuario();
   const campo = (nome: string) => {
     const v = String(dados.get(nome) ?? "").trim();
     return v || null;
@@ -62,6 +66,7 @@ export async function acaoAbrirIntimacao(dados: FormData) {
       dataDisponibilizacao: campo("data"),
       oab: campo("oab"),
       uf: campo("uf"),
+      usuarioId: usuario.id,
     },
   });
 
