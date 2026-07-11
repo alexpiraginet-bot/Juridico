@@ -12,8 +12,9 @@ O dono do projeto está aprendendo programação: o histórico do git e
 `public/prototipo.html` é o protótipo original (uma única página HTML,
 publicada primeiro em project-pqvs7.vercel.app). Ele define identidade
 visual, textos, telas e fluxos — em caso de dúvida de produto ou design,
-ele é a referência. Não editar esse arquivo; o app em `app/` é a versão
-estruturada dele.
+ele é a referência. Evitar editá-lo: só ajustes pontuais pedidos pelo
+dono, registrados no diário (ex.: Passo 9 — fade-in do nome e miniatura).
+O app em `app/` é a versão estruturada dele.
 
 ## Comandos
 

@@ -52,6 +52,13 @@ export function BarraSuperior() {
         </i>
       </button>
 
+      <img
+        src="/avatar-gustavo.png"
+        alt="Dr. Gustavo Shimabuco"
+        title="Dr. Gustavo Shimabuco · Sócio"
+        className="ml-1 h-8 w-8 shrink-0 rounded-full border border-borda object-cover"
+      />
+
       {elemento}
     </header>
   );

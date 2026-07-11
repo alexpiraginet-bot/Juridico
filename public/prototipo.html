@@ -208,6 +208,18 @@
   .pc .n{font-size:58px;font-weight:800;color:#B9D49A}
   .pc .l{font-size:13px;color:#9FB0C4;margin-top:2px}
   .phint{font-size:12px;color:#7d8ea3;margin-top:30px}
+
+  /* ---- Ajuste (Passo 9): .pwel-name e .pbtn definem animação própria
+     (brilho/pulso), que sobrescrevia o fade-in do .fadeup — o elemento
+     ficava com opacity 0 para sempre. Aqui as duas rodam juntas. ---- */
+  .pwel-name.fadeup{animation:fu .9s .55s forwards,glowp 2.8s ease-in-out .55s infinite}
+  .pbtn.fadeup{animation:fu .9s 1.35s forwards,pulse 2s 1.35s infinite}
+
+  /* ---- Miniatura do Dr. Gustavo na tela de boas-vindas ---- */
+  .pavatar{position:relative;width:132px;height:132px;border-radius:50%;margin-bottom:20px;border:3px solid rgba(127,166,90,.85);box-shadow:0 0 42px rgba(127,166,90,.4),0 4px 18px rgba(0,0,0,.45);background:#243a5a;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .pavatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pavatar span{font-size:44px;font-weight:800;color:#B9D49A;letter-spacing:1px}
+  @media(max-width:640px){.pavatar{width:96px;height:96px;margin-bottom:14px}.pavatar span{font-size:32px}}
 </style>
 </head>
 <body>
@@ -224,6 +236,7 @@
   </div>
 
   <div class="pstep" id="ps1">
+    <div class="pavatar fadeup d1"><span>GS</span><img src="avatar-gustavo.png" alt="Retrato do Dr. Gustavo Shimabuco" onerror="this.remove()"></div>
     <div class="pwel-small fadeup d1">SEJA BEM-VINDO</div>
     <div class="pwel-name fadeup d2">DR. GUSTAVO SHIMABUCO</div>
     <div class="pwel-sub fadeup d3">ao seu novo sistema de gestão jurídica — onde cada conversa, intimação, prazo e petição do seu escritório trabalha em um só lugar, com inteligência artificial sob o seu comando.</div>

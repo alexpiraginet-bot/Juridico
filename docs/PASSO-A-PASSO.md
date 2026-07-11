@@ -241,6 +241,71 @@ banco de dados na Fase 2).
 
 ---
 
+## Passo 8 — documentação da unificação
+
+> Commit: `Passo 8: documentação da unificação com o protótipo`
+
+README e `CLAUDE.md` assumiram a identidade LexFlow e este diário ganhou
+os capítulos dos Passos 6 e 7. Documentar a mudança faz parte da mudança.
+
+---
+
+## Passo 9 — caça ao bug na apresentação (e a miniatura)
+
+> Commit: `Passo 9: apresentação — nome visível e miniatura do Dr. Gustavo`
+
+Nosso primeiro bug de verdade! Na tela de boas-vindas da apresentação, o
+nome **DR. GUSTAVO SHIMABUCO** simplesmente não aparecia — e um detalhe
+curioso: ele nunca tinha aparecido, nem na versão publicada na Vercel.
+O defeito veio junto com o protótipo original.
+
+**A investigação.** Primeiro reproduzimos o problema (abrir a página e
+fotografar a tela), depois fomos ler o CSS. O elemento do nome usa duas
+classes:
+
+```html
+<div class="pwel-name fadeup d2">DR. GUSTAVO SHIMABUCO</div>
+```
+
+- `.fadeup` deixa o elemento invisível (`opacity: 0`) e define
+  `animation: fu …` — a animação que o faz surgir;
+- `.pwel-name` define `animation: glowp …` — o brilho verde pulsante.
+
+Aí está o bug: **as duas regras definem a mesma propriedade
+(`animation`)**. Quando duas regras de mesma especificidade disputam uma
+propriedade, vence a que aparece **por último no arquivo** — no caso, a
+`.pwel-name`. Resultado: o brilho substituía o fade-in; como o brilho só
+anima a sombra do texto, a opacidade ficava em 0 para sempre. O nome
+estava lá o tempo todo — invisível. O botão verde ("Conhecer o sistema")
+tinha exatamente o mesmo problema com a animação de pulso.
+
+**A correção.** Uma regra mais específica (duas classes) que roda as
+duas animações **juntas, na mesma declaração**:
+
+```css
+.pwel-name.fadeup{animation:fu .9s .55s forwards,glowp 2.8s ease-in-out .55s infinite}
+.pbtn.fadeup{animation:fu .9s 1.35s forwards,pulse 2s 1.35s infinite}
+```
+
+**Lição do passo:** no CSS, `animation` é uma propriedade só — se duas
+regras a definem, uma engole a outra silenciosamente. Para combinar
+efeitos, liste as animações separadas por vírgula na mesma regra. E na
+dúvida sobre "quem venceu", o inspetor do navegador (botão direito →
+Inspecionar) mostra as regras riscadas.
+
+**A miniatura.** A foto do Dr. Gustavo entrou em `public/avatar-gustavo.png`
+e aparece em dois lugares: na tela de boas-vindas (classe `.pavatar`, com
+anel verde e brilho combinando com o nome) e na barra superior do app, ao
+lado do sino. Se o arquivo da foto faltar, a apresentação mostra as
+iniciais "GS" no lugar — o `onerror` da tag `<img>` remove a imagem
+quebrada e revela o texto de reserva.
+
+Este foi também o primeiro ajuste feito no `public/prototipo.html` — que
+em regra não se edita. Correções pontuais pedidas pelo dono são a exceção,
+sempre registradas aqui.
+
+---
+
 ## O que vem a seguir
 
 A Fase 2 troca `lib/dados.ts` por um banco **SQLite** acessado via
