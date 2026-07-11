@@ -412,10 +412,117 @@ voltando com a mensagem certa na URL.
 
 ---
 
+## Passo 14 — jurisprudência de verdade: a fonte oficial (DataJud/CNJ)
+
+> Commit: `Passo 14: jurisprudência — consulta pública ao DataJud/CNJ`
+
+**A pergunta que originou este passo:** "como montamos a base de dados
+do Jusbrasil de todas as jurisprudências?" A resposta honesta muda o
+rumo — e é uma lição importante sobre dados e legalidade.
+
+O **Jusbrasil é uma empresa privada**. A base dele não está à venda nem
+pode ser "copiada": fazer isso violaria os termos de uso e o direito
+autoral da compilação. Mas há uma notícia melhor: **os dados que o
+Jusbrasil usa vêm, na origem, de fontes públicas e gratuitas** — e nós
+podemos beber direto da fonte.
+
+A fonte é a **API Pública do DataJud**, a Base Nacional de Dados do
+Poder Judiciário, mantida pelo **CNJ** (Conselho Nacional de Justiça).
+Ela expõe os metadados de processos de *todos* os tribunais do país —
+classe, assuntos, órgão julgador, movimentos — de graça, para qualquer
+um. É a mesma água; só que da nascente.
+
+O que foi construído:
+
+- **`lib/juris/datajud.ts`** — o cliente da API. Um `fetch` para o
+  endpoint do tribunal escolhido, com a chave pública que o próprio CNJ
+  divulga na documentação (trocável por `DATAJUD_API_KEY` se o CNJ
+  mudá-la). A busca aceita tanto texto livre (assunto/classe) quanto um
+  número CNJ. A função `formatarNumeroCnj` transforma
+  `07084425520238080035` no `0708442-55.2023.8.08.0035` que a gente lê.
+- **`app/jurisprudencia/page.tsx`** — a tela: escolha o tribunal, digite
+  o termo, e os processos aparecem com classe, assuntos e o último
+  movimento. É uma página de servidor `force-dynamic` que consulta o CNJ
+  a cada busca.
+- Um item **Jurisprudência** entrou na barra lateral.
+
+**Lições do passo, que valem além do código:**
+
+1. **Vá à fonte primária.** Antes de pagar por um agregador, veja se o
+   dado nasce público. No Direito brasileiro, muita coisa nasce.
+2. **Erros de rede são parte do produto.** A API do CNJ tem limite de
+   uso na chave pública compartilhada; quando ele estoura, ela responde
+   `429`. A tela trata isso com uma mensagem amigável em vez de quebrar —
+   o mesmo vale para quedas de conexão. Software que fala com o mundo
+   externo *precisa* prever que o mundo às vezes não responde.
+3. **Legalidade é requisito, não detalhe.** A solução certa (fonte
+   oficial) é também a única sustentável.
+
+**Nota de bastidor:** no ambiente de nuvem onde este passo foi
+construído, o `fetch` do servidor não conseguia atravessar o proxy da
+sandbox, então a busca ao vivo só roda quando publicada na Vercel. A
+correção da transformação (resposta do CNJ → tela) foi verificada
+rodando o parser sobre uma resposta real da API.
+
+---
+
+## Passo 15 — a IA de verdade nas minutas (API do Claude)
+
+> Commit: `Passo 15: IA real — minutas geradas pela API do Claude`
+
+Até aqui, o botão "Gerar minuta" reproduzia um texto pronto (o roteiro
+do protótipo). Neste passo ele passa a **redigir de verdade**, chamando
+a API do Claude com o contexto real do processo.
+
+As peças:
+
+- **`lib/ia.ts`** — a conexão com a Anthropic. Roda **só no servidor**
+  (a chave `ANTHROPIC_API_KEY` nunca chega ao navegador). O coração é o
+  *system prompt* do redator: escreve em português forense, usa **apenas
+  os fatos fornecidos**, nunca inventa lei ou jurisprudência, marca o que
+  falta com `[PENDENTE: ...]` e sempre fecha com uma "⚠ NOTA DA IA" de
+  pendências e riscos. É o princípio do produto virado regra técnica:
+  *a IA redige, o advogado decide.*
+- **`lib/acoes/minutas.ts`** — a server action. Busca no banco a capa do
+  processo, o cliente e os prazos pendentes, monta o contexto e pede a
+  peça ao Claude. Todo erro da API (chave inválida, limite, sem conexão)
+  vira uma mensagem clara — a tela nunca quebra.
+- **`app/minutas/PainelMinutas.tsx`** — agora tem dois modos:
+  - **com chave configurada:** você escolhe o processo, dá orientações
+    opcionais ("foque na preliminar de incompetência") e clica em "Gerar
+    minuta com IA"; o texto é "digitado" na tela e entra no histórico de
+    versões (v1 IA → v2 humana → v3 aprovada);
+  - **sem chave:** volta ao modo demonstração, com um aviso de como ligar
+    a IA. O app funciona nos dois casos.
+
+**Detalhes que valem estudar:**
+
+- **Segredo no lugar certo.** A chave da API vive numa variável de
+  ambiente do servidor, nunca no código nem no navegador. Quem olha o
+  "código-fonte" da página no navegador não a encontra.
+- **Esforço e tempo.** Gerar uma peça leva tempo; usamos
+  `effort: "medium"` e `export const maxDuration = 60` para caber no
+  tempo de uma função da Vercel.
+- **A IA é sempre sinalizada.** O texto nasce com o `SeloIA` e o rótulo
+  "pendente de revisão humana". O sistema **nunca protocola sozinho**.
+
+---
+
+## Passo 16 — documentação das integrações reais
+
+> Commit: `Passo 16: documentação — jurisprudência e IA`
+
+README, `CLAUDE.md` e este diário ganham as duas integrações; o
+`.env.example` passa a listar `ANTHROPIC_API_KEY` (IA) e `DATAJUD_API_KEY`
+(opcional). Documentar como ligar cada integração faz parte de entregá-la.
+
+---
+
 ## O que vem a seguir
 
-Fase 3: autenticação (login), perfis por função e o log de auditoria —
-"quem validou este prazo, e quando?". Depois, as integrações reais
-(WhatsApp Business API e DJEN/Comunica API na Fase 4) e a IA de verdade
-via API do Claude (Fase 5), sempre com validação humana, como o
-protótipo promete desde a primeira tela.
+As duas grandes fases restantes: **Fase 3** (autenticação, perfis por
+função e o log de auditoria — "quem validou este prazo, e quando?") e o
+que falta da **Fase 4/5** (o WhatsApp Business API para os atendimentos e
+a captura automática de intimações do DJEN, além de estender a IA para o
+relato fático e a análise de intimações). O alicerce — banco na nuvem,
+IA conectada e consulta pública ao Judiciário — já está de pé.

@@ -16,6 +16,7 @@ const itens = [
   { rotulo: "Clientes", href: "/clientes", icone: "👤" },
   { rotulo: "Processos", href: "/processos", icone: "⚖️" },
   { rotulo: "Intimações", href: "/intimacoes", icone: "📨" },
+  { rotulo: "Jurisprudência", href: "/jurisprudencia", icone: "📚" },
   { rotulo: "Prazos", href: "/prazos", icone: "⏱️" },
   { rotulo: "Tarefas", href: "/tarefas", icone: "🗂️" },
   { rotulo: "Minutas IA", href: "/minutas", icone: "✍️" },
