@@ -60,6 +60,7 @@ app/                        # cada pasta vira uma página (App Router)
   clientes/                 #   cadastro real (listar/criar/editar/excluir)
   processos/                #   carteira real com filtros por área
   intimacoes/               #   publicações do DJEN + validação de prazo
+  djen/                     #   "meus processos": busca pela OAB no DJEN/CNJ
   jurisprudencia/           #   consulta pública ao DataJud/CNJ (dados reais)
   prazos/                   #   agenda oficial com validação humana
   tarefas/                  #   kanban de fluxos (demonstração)
@@ -71,6 +72,7 @@ lib/
   ia.ts                     #   conexão com a API do Claude (redação de minutas)
   acoes/                    #   server actions — gravam no banco / chamam a IA
   juris/datajud.ts          #   cliente da API Pública do DataJud/CNJ
+  djen/comunica.ts          #   cliente da API Comunica/DJEN (busca pela OAB)
   generated/                #   cliente do Prisma (gerado; fora do git)
   dados.ts                  #   conteúdo das telas de demonstração
 prisma/                     # schema do banco, migrações e semente
@@ -85,6 +87,7 @@ O repositório está conectado à Vercel (deploy contínuo):
 - **Produção** (branch `main`): <https://juridico-liard.vercel.app>
 - Cada branch/PR ganha automaticamente um endereço de pré-visualização.
 - O build é configurado por [`vercel.json`](vercel.json) (`framework: nextjs`).
+- As funções rodam na região **São Paulo (`gru1`)** — o DJEN/CNJ só aceita acessos do Brasil.
 
 ## Documentação
 
@@ -98,4 +101,4 @@ O repositório está conectado à Vercel (deploy contínuo):
 3. ✅ **Fase 2 — banco de dados na nuvem**: PostgreSQL + Prisma, cadastro real de clientes, processos e prazos com validação humana.
 4. 🟡 **Fase 5 — IA e dados reais** (em andamento): minutas redigidas pela API do Claude e consulta pública de jurisprudência ao DataJud/CNJ. Faltam: relato fático e análise de intimações por IA.
 5. ⬜ **Fase 3 — autenticação e equipe**: login, perfis por função, auditoria.
-6. ⬜ **Fase 4 — integrações de comunicação**: WhatsApp Business API (atendimentos) e captura automática do DJEN (intimações).
+6. 🟡 **Fase 4 — integrações de comunicação** (em andamento): busca de processos pela OAB no DJEN/CNJ (tela *Meus processos*); a seguir, importação para o banco e captura automática de hora em hora, além do WhatsApp Business API (atendimentos).

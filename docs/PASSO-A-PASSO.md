@@ -518,11 +518,55 @@ README, `CLAUDE.md` e este diário ganham as duas integrações; o
 
 ---
 
+## Passo 17 — buscar "os meus processos" pela OAB (DJEN)
+
+> Commit: `Passo 17: DJEN — busca de processos pela OAB (captura oficial)`
+
+Até aqui as intimações da tela `/intimacoes` eram de demonstração. Este
+passo abre a **captura oficial**: informar a OAB e receber, direto do
+**Diário de Justiça Eletrônico Nacional (DJEN/CNJ)**, todas as
+comunicações processuais publicadas para aquele advogado — cada uma com o
+número do processo. É o começo da Fase 4: primeiro **um botão de busca**;
+a automação de hora em hora vem no próximo passo.
+
+As peças:
+
+- **`lib/djen/comunica.ts`** — o cliente da **API Comunica / DJEN**
+  (`comunicaapi.pje.jus.br`), a fonte oficial e gratuita, pesquisável
+  **pela OAB**. Roda só no servidor. A `buscarNoDjen(oab, uf)` monta a
+  consulta, trata os erros com mensagens claras e devolve as comunicações
+  já organizadas, com a lista de **processos distintos**.
+- **`app/djen/page.tsx`** — a tela *Meus processos*: um formulário com
+  OAB e UF (já preenchidos pelas variáveis de ambiente, se existirem) e o
+  botão "🔎 Buscar meus processos". Lista cada comunicação com número do
+  processo, tribunal, tipo, órgão e um resumo do teor.
+
+**Detalhes que valem estudar:**
+
+- **Geobloqueio — e a região São Paulo.** O CNJ só aceita acessos vindos
+  do **Brasil**; de fora, responde `403`. A solução é de infraestrutura,
+  não de código: a rota declara `export const preferredRegion = "gru1"` e
+  o `vercel.json` fixa `"regions": ["gru1"]`, de modo que a função roda no
+  data center de São Paulo e sai com IP brasileiro. É um exemplo de como
+  *onde* o código roda pode importar tanto quanto o que ele faz.
+- **Parsing defensivo.** Como a resposta real só pode ser inspecionada
+  rodando do Brasil, o cliente aceita variações de nome de campo
+  (`numero_processo` ou `numeroProcesso`, `siglaTribunal` ou
+  `tribunal`…). Programar defensivamente contra um formato que você ainda
+  não viu de perto evita que a tela quebre na primeira surpresa.
+- **Dados pessoais em variável de ambiente.** Nome e OAB do advogado são
+  dados reais: entram por `ADVOGADO_OAB`, `ADVOGADO_UF` e `ADVOGADO_NOME`,
+  nunca chumbados no código versionado.
+
+---
+
 ## O que vem a seguir
 
-As duas grandes fases restantes: **Fase 3** (autenticação, perfis por
-função e o log de auditoria — "quem validou este prazo, e quando?") e o
-que falta da **Fase 4/5** (o WhatsApp Business API para os atendimentos e
-a captura automática de intimações do DJEN, além de estender a IA para o
-relato fático e a análise de intimações). O alicerce — banco na nuvem,
-IA conectada e consulta pública ao Judiciário — já está de pé.
+Ainda na **Fase 4**: importar os processos encontrados no DJEN para o
+banco (sem duplicar), guardar as intimações e ligar a **busca automática
+de hora em hora** — além do WhatsApp Business API para os atendimentos.
+Depois, a **Fase 3** (autenticação, perfis por função e o log de
+auditoria — "quem validou este prazo, e quando?") e o que falta da
+**Fase 5** (estender a IA para o relato fático e a análise de
+intimações). O alicerce — banco na nuvem, IA conectada, consulta pública
+ao Judiciário e agora a captura oficial pela OAB — já está de pé.
