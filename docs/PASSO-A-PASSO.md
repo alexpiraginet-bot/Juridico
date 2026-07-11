@@ -719,13 +719,53 @@ O que mudou:
 
 ---
 
+## Passo 22 — a captura automática, todo dia de manhã
+
+> Commit: `Passo 22: DJEN — varredura automática diária (cron da Vercel)`
+
+As publicações agora chegam **sozinhas**: um agendamento (cron) da Vercel
+roda a busca pela OAB todo dia de manhã e grava as novidades no banco. O
+advogado abre o sistema e as intimações do dia já estão lá.
+
+As peças:
+
+- **`lib/djen/importar.ts`** — o núcleo da importação saiu das server
+  actions para um módulo próprio, porque agora é usado em dois lugares: a
+  tela (botão "Importar") e a rota do cron. Mesma lógica, um dono só.
+- **`app/api/djen/varrer/route.ts`** — a rota que o cron chama. Busca tudo
+  pela OAB (`ADVOGADO_OAB`/`ADVOGADO_UF`) e grava as novas. É **protegida
+  por segredo**: a Vercel manda `Authorization: Bearer CRON_SECRET`, e sem
+  o segredo certo a rota responde `401` — nunca roda aberta.
+- **`vercel.json`** — o agendamento: `"schedule": "0 11 * * *"`.
+
+**Detalhes que valem estudar:**
+
+- **Fuso horário do cron.** A Vercel dispara os crons em **UTC**. Como o
+  Espírito Santo é UTC−3, **08h da manhã aqui = 11h UTC** — daí o `0 11`.
+  Um detalhe que engana fácil quem esquece que o servidor não vive no seu
+  fuso.
+- **Segredo no cabeçalho, não na URL.** O segredo vai no `Authorization`,
+  que não aparece no endereço nem em logs de navegador. A Vercel injeta
+  sozinha quando `CRON_SECRET` existe.
+- **Idempotente de propósito.** Rodar todo dia não acumula repetido: o
+  `djenId` único + `skipDuplicates` fazem o banco só acrescentar o que é
+  novo. A varredura de hoje traz só as publicações de hoje.
+- **Plano da Vercel.** O cron **diário** cabe no plano atual (o de hora em
+  hora exigiria upgrade). Por isso combinamos uma vez por dia, de manhã.
+
+Para ligar em produção: definir na Vercel `CRON_SECRET` (um valor
+aleatório), `ADVOGADO_OAB` e `ADVOGADO_UF`. Sem eles, a rota se recusa a
+rodar — de propósito.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 4**: ligar a **busca automática de hora em hora** do DJEN
-(as publicações passam a chegar sozinhas, todo dia, e caem direto nesta
-aba) — além do WhatsApp Business API para os atendimentos. E, quando fizer
-sentido, puxar os **autos completos** do PJe (com credenciais) para além
-dos andamentos e das intimações.
+A **Fase 4** fica só com o **WhatsApp Business API** dos atendimentos. E,
+quando fizer sentido, puxar os **autos completos** do PJe (com credenciais)
+para além dos andamentos e das intimações. Depois, a **Fase 3**
+(autenticação, perfis e o log de auditoria) e o que falta da **Fase 5** (o
+relato fático dos atendimentos por IA).
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de
