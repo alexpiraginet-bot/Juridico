@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
+import { exigirSuperadmin } from "@/lib/auth";
 import { alternarCredencial, criarCredencial, excluirCredencial } from "@/lib/acoes/credenciais";
 
 export const metadata: Metadata = { title: "Credenciais jurídicas" };
@@ -16,6 +17,7 @@ export default async function PaginaCredenciais({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
+  await exigirSuperadmin();
   const { erro } = await searchParams;
 
   const [usuarios, credenciais] = await Promise.all([

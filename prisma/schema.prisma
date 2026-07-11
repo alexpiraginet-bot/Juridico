@@ -103,17 +103,59 @@ model Intimacao {
   @@map("intimacoes")
 }
 
-// Fase 3 — usuários da equipe do escritório. Por ora é cadastro/gestão
-// (nome, e-mail, cargo); o login com senha vem numa etapa seguinte.
+// Fase 3 — papéis de acesso. SUPERADMIN somos nós (a plataforma);
+// DONO_ESCRITORIO administra um Team; os demais são a equipe do escritório
+// (ASSESSOR/ESTAGIARIO tendem a ser só consulta).
+enum PapelUsuario {
+  SUPERADMIN
+  DONO_ESCRITORIO
+  ADVOGADO
+  ASSESSOR
+  ESTAGIARIO
+}
+
+// Team = o escritório/empresa que nos contrata (o inquilino). Tem nome e
+// logo próprios (identidade dentro do app). Nós criamos os Teams no painel
+// central; cada Team cadastra seus próprios usuários.
+model Team {
+  id       String    @id @default(cuid())
+  nome     String
+  logoUrl  String?   @map("logo_url")
+  criadoEm DateTime  @default(now()) @map("criado_em")
+  usuarios Usuario[]
+
+  @@map("teams")
+}
+
+// Usuário com login (e-mail + senha). Pertence a um Team (exceto o
+// SUPERADMIN, que é da plataforma). `senhaHash` guarda o hash (scrypt),
+// nunca a senha em texto.
 model Usuario {
   id          String          @id @default(cuid())
   nome        String
   email       String          @unique
+  senhaHash   String?         @map("senha_hash")
+  papel       PapelUsuario    @default(ADVOGADO)
   cargo       String?
+  teamId      String?         @map("team_id")
+  team        Team?           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   criadoEm    DateTime        @default(now()) @map("criado_em")
   credenciais CredencialOab[]
+  sessoes     Sessao[]
 
   @@map("usuarios")
+}
+
+// Sessão de login — o id é o token que vai no cookie httpOnly. Enquanto
+// não expira, identifica o usuário logado.
+model Sessao {
+  id        String   @id @default(cuid())
+  usuarioId String   @map("usuario_id")
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEm  DateTime @map("expira_em")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  @@map("sessoes")
 }
 
 // Credencial jurídica (OAB) de um usuário — é o que a varredura automática

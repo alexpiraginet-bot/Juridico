@@ -9,12 +9,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
+import { exigirSuperadmin } from "@/lib/auth";
 
 function texto(dados: FormData, campo: string): string {
   return String(dados.get(campo) ?? "").trim();
 }
 
 export async function criarCredencial(dados: FormData) {
+  await exigirSuperadmin();
   const numero = texto(dados, "numero").replace(/\D/g, "");
   const uf = texto(dados, "uf").toUpperCase();
   const nomeAdvogado = texto(dados, "nomeAdvogado");
@@ -46,6 +48,7 @@ export async function criarCredencial(dados: FormData) {
 
 // Liga/desliga uma credencial na varredura automática, sem excluí-la.
 export async function alternarCredencial(id: string, ativa: boolean) {
+  await exigirSuperadmin();
   try {
     await bd.credencialOab.update({ where: { id }, data: { ativa } });
   } catch {
@@ -57,6 +60,7 @@ export async function alternarCredencial(id: string, ativa: boolean) {
 }
 
 export async function excluirCredencial(id: string) {
+  await exigirSuperadmin();
   try {
     await bd.credencialOab.delete({ where: { id } });
   } catch {

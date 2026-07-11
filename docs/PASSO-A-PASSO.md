@@ -794,13 +794,57 @@ As peças:
 
 ---
 
+## Passo 24 — login (e-mail + senha) e o painel central dos escritórios
+
+> Commit: `Passo 24: Fase 3 — login (e-mail+senha) e painel central (escritórios)`
+
+Agora o app tem **acesso**. Nasce a estrutura multi-inquilino: nós (a
+**plataforma**) cadastramos os **escritórios** (cada um com nome e logo) e
+criamos o acesso do dono; o escritório cuida da própria equipe.
+
+As peças:
+
+- **Três coisas novas no banco**: o papel `PapelUsuario` (SUPERADMIN,
+  DONO_ESCRITORIO, ADVOGADO, ASSESSOR, ESTAGIARIO), o `Team` (o escritório,
+  com `logoUrl`) e a `Sessao`. O `Usuario` ganha `senhaHash`, `papel` e
+  `teamId`.
+- **`lib/auth.ts`** — o coração do login. A senha é guardada com **`scrypt`
+  do próprio Node** (com um sal aleatório por senha) — nunca em texto. A
+  sessão é uma linha na tabela `sessoes`, e o id dela vai num **cookie
+  httpOnly**: o navegador devolve a cada visita, mas o JavaScript da página
+  não consegue ler. `usuarioAtual()` lê o cookie e diz quem está logado;
+  `exigirSuperadmin()` redireciona quem não for.
+- **`/entrar`** — a tela de login. **`/central`** — o painel só do
+  super-admin, onde a gente cadastra os escritórios e o acesso do dono.
+- As telas de **Usuários** e **Credenciais** passam a ser **protegidas**
+  (super-admin, por ora).
+
+**Detalhes que valem estudar:**
+
+- **Nunca a senha em texto.** Guardamos o *hash* (uma função de mão única):
+  dá para conferir se a senha bate, mas não dá para voltar do hash à senha.
+  O sal aleatório faz duas senhas iguais virarem hashes diferentes.
+- **Cookie httpOnly + a ação protege a ação.** O cookie ser httpOnly evita
+  que um script roube a sessão. E como *server action é endpoint público*,
+  cada ação sensível (criar escritório, usuário, credencial) chama
+  `exigirSuperadmin()` — proteger só a tela não bastaria.
+- **Bootstrap do super-admin.** No primeiro login, `garantirSuperadmin()`
+  cria o super-admin a partir de `SUPERADMIN_EMAIL`/`SUPERADMIN_SENHA` — sem
+  precisar semear o banco à mão.
+
+Para ligar em produção: definir `SUPERADMIN_EMAIL` e `SUPERADMIN_SENHA` na
+Vercel, entrar em `/entrar` e cadastrar os escritórios em `/central`.
+
+---
+
 ## O que vem a seguir
 
-**Fase 3**: o **login com senha** (autenticação), perfis por função e o log
-de auditoria — agora que usuários e credenciais existem. Na **Fase 4**,
-falta o **WhatsApp Business API** dos atendimentos (e, com credenciais, os
-**autos completos** do PJe). E, na **Fase 5**, o relato fático dos
-atendimentos por IA.
+Ainda na **Fase 3**: o dono do escritório gerindo a **própria equipe**
+(com os papéis — assessor/estagiário só consulta); o **isolamento** (cada
+advogado vê só os seus processos); e o **compartilhamento** entre advogados
+do mesmo Team. Depois, proteger o app inteiro atrás do login e uma tela de
+login sem a barra lateral. Na **Fase 4**, o **WhatsApp Business API**; e, na
+**Fase 5**, o relato fático dos atendimentos por IA.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de

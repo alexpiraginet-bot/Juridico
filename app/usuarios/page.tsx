@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
+import { exigirSuperadmin } from "@/lib/auth";
 import { criarUsuario, excluirUsuario } from "@/lib/acoes/usuarios";
 
 export const metadata: Metadata = { title: "Usuários" };
@@ -18,6 +19,7 @@ export default async function PaginaUsuarios({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
+  await exigirSuperadmin();
   const { erro } = await searchParams;
 
   const usuarios = await bd.usuario.findMany({
