@@ -600,12 +600,59 @@ As peças:
 
 ---
 
+## Passo 19 — abrir o processo com um resumo da IA
+
+> Commit: `Passo 19: processo — resumo da IA a partir dos andamentos (DataJud)`
+
+Clicar num processo agora abre uma **página de detalhe** que conta, em
+português claro, do que ele trata, em que fase provavelmente está e o que
+aconteceu de mais recente — um resumo escrito pela IA a partir dos
+**andamentos oficiais** do processo.
+
+De onde vêm os andamentos: da **API Pública do DataJud/CNJ**, a mesma da
+tela de Jurisprudência. O truque é descobrir o tribunal **pelo próprio
+número CNJ**: no formato `…AAAA.J.TR.OOOO`, o dígito `J` diz o ramo da
+Justiça e `TR` o tribunal — então `…8.08…` é o TJES, `…5.17…` o TRT-17,
+`…4.02…` a Justiça Federal. Sem precisar escolher nada, o sistema sabe
+onde buscar.
+
+As peças:
+
+- **`lib/juris/datajud.ts`** ganha `aliasDoNumeroCnj` (o número → índice do
+  DataJud) e `consultarProcesso`, que devolve a **linha do tempo completa**
+  dos movimentos, ordenada do mais novo para o mais antigo.
+- **`lib/ia.ts`** ganha `resumirProcessoComClaude`. Mesma disciplina do
+  redator de minutas: usa **só os andamentos dados**, não inventa, e trata
+  a fase como **leitura** da IA (a conferir nos autos). A resposta vem em
+  **JSON estruturado** (`output_config.format`) — resumo, fase provável,
+  andamentos "em miúdos" e pontos de atenção — para a tela montar tudo
+  bonitinho, sempre com o `SeloIA`.
+- **`app/processos/[id]/page.tsx`** — a tela de detalhe. A página aparece
+  na hora (cabeçalho + andamentos) e o **resumo da IA entra depois**, dentro
+  de um `<Suspense>`: nada de esperar a IA de tela em branco. Mostra também
+  as **intimações do DJEN** já capturadas para aquele processo (Passo 18) —
+  as duas pontas se encontram.
+
+**Detalhes que valem estudar:**
+
+- **O número já diz o tribunal.** Programar o `aliasDoNumeroCnj` é um bom
+  exercício de ler um padrão (a numeração única do CNJ) e extrair
+  significado dele.
+- **`<Suspense>` para o que é lento.** A parte cara (a IA) carrega em
+  separado; a página não trava esperando. É o jeito do Next.js de
+  "streamar" pedaços prontos.
+- **Autos completos ≠ andamentos.** Puxar os *autos* inteiros (petições,
+  decisões) exige login/certificado por tribunal no PJe — fica para
+  depois. Os andamentos públicos do DataJud já bastam para o resumo.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 4**: abrir cada processo com um **resumo da IA** (do que
-se trata, em que fase está e os últimos andamentos, puxados do DataJud/CNJ)
-e ligar a **busca automática de hora em hora** — além do WhatsApp Business
-API para os atendimentos.
+Ainda na **Fase 4**: ligar a **busca automática de hora em hora** do DJEN
+(captura sozinha os processos novos) — além do WhatsApp Business API para
+os atendimentos. E, quando fizer sentido, puxar os **autos completos** do
+PJe (com credenciais) para além dos andamentos.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de

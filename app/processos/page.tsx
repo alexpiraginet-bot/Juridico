@@ -109,7 +109,12 @@ export default async function PaginaProcessos({
                 return (
                   <tr key={processo.id} className="border-b border-plano-2 last:border-b-0 hover:bg-realce">
                     <td className="max-w-sm px-2.5 py-2.5">
-                      <p className="truncate font-bold">{processo.titulo}</p>
+                      <Link
+                        href={`/processos/${processo.id}`}
+                        className="truncate font-bold text-navy hover:text-verde-escuro hover:underline"
+                      >
+                        {processo.titulo}
+                      </Link>
                       <p className="mt-0.5 font-mono text-[11px] text-suave">{processo.numero}</p>
                       {processo.tribunal && (
                         <p className="mt-0.5 truncate text-xs text-suave">{processo.tribunal}</p>
@@ -124,6 +129,12 @@ export default async function PaginaProcessos({
                       {processo.valorCausa != null ? formatarMoeda(Number(processo.valorCausa)) : "—"}
                     </td>
                     <td className="whitespace-nowrap px-2.5 py-2.5 text-right">
+                      <Link
+                        href={`/processos/${processo.id}`}
+                        className="mr-2 rounded-lg border border-verde bg-selo-verde px-2.5 py-1 text-[11px] font-semibold text-verde-escuro hover:bg-verde hover:text-white"
+                      >
+                        Abrir
+                      </Link>
                       <Link
                         href={`/processos/${processo.id}/editar`}
                         className="mr-2 rounded-lg border border-borda px-2.5 py-1 text-[11px] font-semibold hover:bg-plano"
