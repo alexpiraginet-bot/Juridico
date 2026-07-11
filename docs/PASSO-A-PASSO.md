@@ -759,13 +759,48 @@ rodar — de propósito.
 
 ---
 
+## Passo 23 — usuários e credenciais de OAB (início da Fase 3)
+
+> Commit: `Passo 23: Fase 3 — usuários e credenciais de OAB para a automação`
+
+A automação era de um advogado só (uma OAB fixa em variável de ambiente).
+Este passo abre para **vários usuários**, cada um com a **sua** OAB — e a
+varredura diária passa a puxar os processos de todos.
+
+As peças:
+
+- **Dois modelos novos** no banco: `Usuario` (nome, e-mail único, cargo) e
+  `CredencialOab` (número, UF, nome do advogado, `ativa`, ligada a um
+  usuário). `(numero, uf)` é único — a mesma OAB não entra duas vezes.
+- **Aba Usuários** (`/usuarios`) — cadastrar, listar e excluir a equipe.
+- **Aba Credenciais jurídicas** (`/credenciais`) — vincular a OAB a um
+  usuário, com **ativar/pausar** (tira da automação sem apagar) e excluir.
+- **Automação multiusuário** — `app/api/djen/varrer` deixa de olhar uma
+  OAB fixa e passa a varrer **todas as credenciais ativas** (com o
+  `ADVOGADO_OAB` do ambiente como reserva, para não quebrar a config
+  anterior).
+
+**Detalhes que valem estudar:**
+
+- **Isto é a Fase 3 começando.** Por ora é **cadastro/gestão** de usuários
+  e credenciais. O **login com senha** (proteger o acesso, cada um enxergar
+  só o seu) é a camada seguinte — a estrutura (`Usuario`) já fica pronta
+  para ela.
+- **Ligar/desligar sem apagar.** A flag `ativa` é um padrão útil: em vez de
+  excluir uma credencial para pausá-la, você a desativa — o histórico fica,
+  e ligar de novo é um clique.
+- **`onDelete: Cascade`.** Apagar um usuário apaga as credenciais dele
+  junto — a regra mora no banco (na relação), não espalhada pelo código.
+
+---
+
 ## O que vem a seguir
 
-A **Fase 4** fica só com o **WhatsApp Business API** dos atendimentos. E,
-quando fizer sentido, puxar os **autos completos** do PJe (com credenciais)
-para além dos andamentos e das intimações. Depois, a **Fase 3**
-(autenticação, perfis e o log de auditoria) e o que falta da **Fase 5** (o
-relato fático dos atendimentos por IA).
+**Fase 3**: o **login com senha** (autenticação), perfis por função e o log
+de auditoria — agora que usuários e credenciais existem. Na **Fase 4**,
+falta o **WhatsApp Business API** dos atendimentos (e, com credenciais, os
+**autos completos** do PJe). E, na **Fase 5**, o relato fático dos
+atendimentos por IA.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de

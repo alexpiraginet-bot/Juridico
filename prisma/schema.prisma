@@ -102,3 +102,34 @@ model Intimacao {
   @@index([numeroProcesso])
   @@map("intimacoes")
 }
+
+// Fase 3 — usuários da equipe do escritório. Por ora é cadastro/gestão
+// (nome, e-mail, cargo); o login com senha vem numa etapa seguinte.
+model Usuario {
+  id          String          @id @default(cuid())
+  nome        String
+  email       String          @unique
+  cargo       String?
+  criadoEm    DateTime        @default(now()) @map("criado_em")
+  credenciais CredencialOab[]
+
+  @@map("usuarios")
+}
+
+// Credencial jurídica (OAB) de um usuário — é o que a varredura automática
+// do DJEN usa para puxar "os processos dele". Cada usuário pode ter uma ou
+// mais; só as `ativa` entram no cron diário. (numero, uf) é único para não
+// cadastrar a mesma OAB duas vezes.
+model CredencialOab {
+  id           String   @id @default(cuid())
+  numero       String // só os dígitos da OAB
+  uf           String // sigla do estado, 2 letras
+  nomeAdvogado String   @map("nome_advogado")
+  ativa        Boolean  @default(true)
+  usuarioId    String   @map("usuario_id")
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  @@unique([numero, uf])
+  @@map("credenciais_oab")
+}

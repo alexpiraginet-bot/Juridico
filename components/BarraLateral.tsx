@@ -22,6 +22,8 @@ const itens = [
   { rotulo: "Prazos", href: "/prazos", icone: "⏱️" },
   { rotulo: "Tarefas", href: "/tarefas", icone: "🗂️" },
   { rotulo: "Minutas IA", href: "/minutas", icone: "✍️" },
+  { rotulo: "Usuários", href: "/usuarios", icone: "👥" },
+  { rotulo: "Credenciais", href: "/credenciais", icone: "🔑" },
 ];
 
 export function BarraLateral() {

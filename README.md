@@ -66,6 +66,9 @@ app/                        # cada pasta vira uma página (App Router)
   prazos/                   #   agenda oficial com validação humana
   tarefas/                  #   kanban de fluxos (demonstração)
   minutas/                  #   minutas redigidas pela IA (com validação humana)
+  usuarios/                 #   cadastro da equipe (Fase 3)
+  credenciais/              #   credenciais de OAB por usuário (automação)
+  api/djen/varrer/          #   rota do cron diário (varre as OABs ativas)
   globals.css               #   tokens de cor da marca (paleta do protótipo)
 components/                 # peças reutilizáveis (Selo, SeloIA, formulários…)
 lib/
@@ -101,5 +104,5 @@ O repositório está conectado à Vercel (deploy contínuo):
 2. ✅ **Fase 1.5 — unificação**: o protótipo LexFlow vira o produto (identidade, 8 telas e fluxos de demonstração).
 3. ✅ **Fase 2 — banco de dados na nuvem**: PostgreSQL + Prisma, cadastro real de clientes, processos e prazos com validação humana.
 4. 🟡 **Fase 5 — IA e dados reais** (em andamento): minutas redigidas pela API do Claude e consulta pública de jurisprudência ao DataJud/CNJ. Faltam: relato fático e análise de intimações por IA.
-5. ⬜ **Fase 3 — autenticação e equipe**: login, perfis por função, auditoria.
+5. 🟡 **Fase 3 — autenticação e equipe** (em andamento): cadastro de usuários e credenciais de OAB por usuário (automação multiusuário); falta login com senha, perfis por função e auditoria.
 6. 🟡 **Fase 4 — integrações de comunicação** (em andamento): busca de processos pela OAB no DJEN/CNJ (tela *Meus processos*), importação para o banco e **captura automática diária** (cron da Vercel às 08h, região São Paulo); falta o WhatsApp Business API (atendimentos).

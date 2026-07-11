@@ -78,7 +78,9 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 4. 🟡 Fase 5 (em andamento) — IA real via API do Claude nas minutas, no
    resumo de processos (andamentos do DataJud) e no resumo de intimações
    do DJEN. Falta: relato fático dos atendimentos por IA.
-5. ⬜ Fase 3 — autenticação, perfis e auditoria.
+5. 🟡 Fase 3 (em andamento) — usuários e credenciais de OAB para a
+   automação multiusuário (telas `/usuarios` e `/credenciais`). Falta:
+   login com senha, perfis por função e auditoria.
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
    causa do geobloqueio), importação para o banco (tabela `Intimacao`,
