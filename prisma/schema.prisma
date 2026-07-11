@@ -97,9 +97,14 @@ model Intimacao {
   dataDisponibilizacao String?  @map("data_disponibilizacao") // "AAAA-MM-DD", como o DJEN envia
   oab                  String?
   uf                   String?
+  // Dono da captura (o advogado da OAB varrida) — é o que faz "cada um vê
+  // só o seu". Nulo nas capturas antigas, anteriores ao isolamento.
+  usuarioId            String?  @map("usuario_id")
+  usuario              Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
   criadoEm             DateTime @default(now()) @map("criado_em")
 
   @@index([numeroProcesso])
+  @@index([usuarioId])
   @@map("intimacoes")
 }
 
@@ -142,6 +147,7 @@ model Usuario {
   criadoEm    DateTime        @default(now()) @map("criado_em")
   credenciais CredencialOab[]
   sessoes     Sessao[]
+  intimacoes  Intimacao[]
 
   @@map("usuarios")
 }

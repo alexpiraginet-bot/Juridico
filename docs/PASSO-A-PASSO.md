@@ -873,12 +873,45 @@ Três coisas de uma vez, todas ligadas ao acesso:
 
 ---
 
+## Passo 26 — isolamento: cada advogado vê só as suas intimações
+
+> Commit: `Passo 26: Fase 3 — isolamento (cada advogado vê só as suas intimações)`
+
+Multi-inquilino de verdade tem duas camadas. O Passo 25 separou os
+**escritórios** (cada dono só enxerga a própria equipe). Agora separamos as
+pessoas **dentro** do escritório: cada intimação capturada ganha um **dono**,
+e ninguém vê a publicação do colega — mesmo estando no mesmo Team.
+
+- **A publicação passou a ter dono.** A tabela `Intimacao` ganhou uma coluna
+  `usuarioId` (opcional, com índice e chave estrangeira `ON DELETE SET NULL`:
+  se o usuário sair, a publicação não é apagada junto — só perde o vínculo).
+- **Quem captura, marca.** Toda porta de entrada carimba o dono: a importação
+  manual e a rota do cron passam o `usuarioId`; a varredura automática usa o
+  **dono de cada credencial de OAB**, então cada advogado recebe as suas.
+- **Quem lê, filtra.** A aba *Intimações*, a página de detalhe e a contagem
+  em *Meus processos* passaram a filtrar por `usuarioId` do usuário logado.
+  Abrir a publicação de outro dono agora dá **404** (`notFound()`), não um
+  vazamento.
+
+**Detalhes que valem estudar:**
+
+- **`SET NULL` × `CASCADE`.** A credencial de OAB é `CASCADE` (sem o dono, a
+  credencial não faz sentido); a intimação é `SET NULL` (o registro do Diário
+  tem valor histórico próprio — não some porque uma pessoa saiu). A escolha do
+  `onDelete` conta uma regra de negócio.
+- **Escopar na leitura _e_ na escrita.** Não basta filtrar quando lê: quem
+  grava também carimba o dono. Se um dos dois lados esquecer, o isolamento
+  falha — por isso o `usuarioId` entra na importação, no cron e na ação de
+  abrir, e o filtro entra em toda consulta.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 3**: o **isolamento** (cada advogado vê só as suas
-intimações/processos) e o **compartilhamento** entre advogados do mesmo
-Team. Na **Fase 4**, o **WhatsApp Business API**; e, na **Fase 5**, o relato
-fático dos atendimentos por IA.
+Ainda na **Fase 3**: o **compartilhamento** entre advogados do mesmo Team
+(um advogado libera uma publicação/processo para o colega ver, sem abrir tudo
+para todos). Na **Fase 4**, o **WhatsApp Business API**; e, na **Fase 5**, o
+relato fático dos atendimentos por IA.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de

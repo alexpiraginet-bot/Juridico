@@ -5,6 +5,7 @@ import { formatarData } from "@/lib/formatar";
 import { buscarNoDjen } from "@/lib/djen/comunica";
 import { acaoImportarIntimacoes, acaoAbrirIntimacao } from "@/lib/acoes/djen";
 import { bd } from "@/lib/bd";
+import { exigirUsuario } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Meus processos · DJEN" };
 export const dynamic = "force-dynamic";
@@ -21,11 +22,12 @@ function dataDjen(iso: string): string {
   return iso || "—";
 }
 
-// Quantas intimações já estão guardadas no banco. Protegido: sem banco
+// Quantas intimações já estão guardadas no banco PARA ESTE USUÁRIO
+// (isolamento: cada advogado só conta as suas). Protegido: sem banco
 // configurado, a busca ao DJEN continua funcionando (degrada com elegância).
-async function contarSalvas(): Promise<number> {
+async function contarSalvas(usuarioId: string): Promise<number> {
   try {
-    return await bd.intimacao.count();
+    return await bd.intimacao.count({ where: { usuarioId } });
   } catch {
     return 0;
   }
@@ -43,6 +45,7 @@ export default async function PaginaDjen({
     erroImport?: string;
   }>;
 }) {
+  const usuario = await exigirUsuario();
   const { oab, uf, buscar, novas, recebidas, erroImport } = await searchParams;
   const oabAtual = (oab ?? process.env.ADVOGADO_OAB ?? "").replace(/\D/g, "");
   const ufAtual = (uf ?? process.env.ADVOGADO_UF ?? "ES").toUpperCase();
@@ -50,7 +53,7 @@ export default async function PaginaDjen({
 
   const deveBuscar = buscar === "1" && Boolean(oabAtual);
   const resultado = deveBuscar ? await buscarNoDjen(oabAtual, ufAtual) : null;
-  const jaSalvas = await contarSalvas();
+  const jaSalvas = await contarSalvas(usuario.id);
 
   return (
     <div>
@@ -223,8 +226,8 @@ export default async function PaginaDjen({
           )}
 
           <p className="mt-4 flex items-center gap-2 text-[11.5px] text-suave">
-            <SeloIA>próximo passo</SeloIA>
-            ligar a busca automática de hora em hora, para capturar as novidades sozinho.
+            <SeloIA>automático</SeloIA>
+            toda manhã (08h) o sistema varre sozinho a sua OAB e guarda as novidades.
           </p>
         </>
       )}

@@ -15,7 +15,11 @@ export type ResultadoImport =
   | { novas: number; recebidas: number; processos: number }
   | { erro: string };
 
-export async function importarIntimacoes(numeroOab: string, ufOab: string): Promise<ResultadoImport> {
+export async function importarIntimacoes(
+  numeroOab: string,
+  ufOab: string,
+  usuarioId?: string | null,
+): Promise<ResultadoImport> {
   const oab = numeroOab.replace(/\D/g, "");
   const uf = (ufOab || "").toUpperCase();
   if (!oab) return { erro: "Informe o número da OAB para importar." };
@@ -35,6 +39,7 @@ export async function importarIntimacoes(numeroOab: string, ufOab: string): Prom
     dataDisponibilizacao: c.data || null,
     oab,
     uf,
+    usuarioId: usuarioId ?? null,
   }));
 
   try {
