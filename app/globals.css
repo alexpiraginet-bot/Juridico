@@ -1,33 +1,47 @@
 @import "tailwindcss";
 
 /*
- * Tokens de design do Juridico (modo claro).
- * Definidos uma única vez aqui e usados nas telas como classes do
- * Tailwind: bg-superficie, text-tinta, border-borda, bg-status-bom etc.
+ * Tokens de design do LexFlow — a paleta vem do protótipo original
+ * (public/prototipo.html) e é usada nas telas como classes do Tailwind:
+ * bg-superficie, text-navy, bg-selo-verde etc.
  */
 @theme {
+  /* Marca */
+  --color-navy: #1b2a41; /* azul-marinho institucional (barra lateral, títulos) */
+  --color-navy-2: #243a5a;
+  --color-navy-tinta: #c7d0dc; /* texto sobre o navy */
+  --color-verde: #7fa65a; /* verde da marca (ações, item ativo) */
+  --color-verde-escuro: #4e6b33;
+
   /* Superfícies */
-  --color-plano: #f9f9f7; /* fundo geral da página */
-  --color-superficie: #fcfcfb; /* cartões, tabelas e painéis */
-  --color-borda: #e1e0d9; /* linhas finas de separação */
+  --color-plano: #f4f3ee; /* fundo geral da página */
+  --color-plano-2: #efeee7; /* colunas do kanban, trilhas */
+  --color-superficie: #ffffff; /* cartões e tabelas */
+  --color-borda: #e3e1d8;
+  --color-realce: #fafaf6; /* linha destacada / hover de tabela */
 
   /* Texto */
-  --color-tinta: #0b0b0b; /* texto principal */
-  --color-tinta-2: #52514e; /* texto secundário */
-  --color-suave: #898781; /* rótulos e apoios */
+  --color-tinta: #22252a;
+  --color-suave: #7a7e87;
 
-  /* Marca */
-  --color-acento: #2a78d6; /* azul principal (links, item ativo) */
-  --color-acento-claro: #3987e5; /* azul para fundos escuros */
+  /* Alertas e estados */
+  --color-ambar: #c98a2d;
+  --color-vermelho: #b4483e;
+  --color-azul: #3d6b9e;
 
-  /* Barra lateral (superfície escura) */
-  --color-lateral: #1a1a19;
-  --color-lateral-hover: #2c2c2a;
-  --color-lateral-tinta: #c3c2b7;
+  /* Fundos suaves dos selos (tags) */
+  --color-selo-verde: #ebf2e2;
+  --color-selo-ambar: #fff4e0;
+  --color-selo-vermelho: #f9e8e6;
+  --color-selo-azul: #e7eff7;
+  --color-selo-cinza: #eeeee9;
+  --color-selo-navy: #e4e9f0;
 
-  /* Status — sempre acompanhados de texto, nunca só a cor */
-  --color-status-bom: #0ca30c;
-  --color-status-alerta: #fab219;
-  --color-status-serio: #ec835a;
-  --color-status-critico: #d03b3b;
+  /* Conteúdo gerado por IA — sempre sinalizado com este par */
+  --color-ia-fundo: #f0ebfa;
+  --color-ia-tinta: #6b4fa8;
+
+  /* Conversa (WhatsApp) */
+  --color-chat-fundo: #efeae2;
+  --color-chat-bolha: #dcf2c8;
 }

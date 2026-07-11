@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { BarraLateral } from "@/components/BarraLateral";
+import { BarraSuperior } from "@/components/BarraSuperior";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Juridico — gestão para escritórios de advocacia",
-    template: "%s — Juridico",
+    default: "LexFlow — Sistema de Gestão Jurídica",
+    template: "%s — LexFlow",
   },
-  description: "Acompanhe processos, clientes e prazos em um só lugar.",
+  description:
+    "Atendimentos via WhatsApp, intimações do DJEN, prazos auditáveis e minutas assistidas por IA — o escritório inteiro em um só lugar.",
 };
 
 export default function LayoutRaiz({
@@ -15,10 +17,13 @@ export default function LayoutRaiz({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body className="bg-plano font-sans text-tinta antialiased">
-        <div className="flex min-h-screen">
+      <body className="bg-plano text-[14px] font-sans text-tinta antialiased">
+        <div className="flex h-screen overflow-hidden">
           <BarraLateral />
-          <main className="min-w-0 flex-1 px-6 py-8 lg:px-10">{children}</main>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <BarraSuperior />
+            <main className="flex-1 overflow-y-auto p-5 md:p-6">{children}</main>
+          </div>
         </div>
       </body>
     </html>

@@ -1,54 +1,56 @@
 import type { Metadata } from "next";
-import { clientes, processosDoCliente } from "@/lib/dados";
+import { BotaoNovoCliente } from "@/components/BotaoNovoCliente";
+import { Selo } from "@/components/Selo";
+import { clientes } from "@/lib/dados";
 
 export const metadata: Metadata = { title: "Clientes" };
 
 export default function PaginaClientes() {
   return (
-    <div className="mx-auto max-w-5xl">
-      <header>
-        <h1 className="text-2xl font-semibold">Clientes</h1>
-        <p className="mt-1 text-sm text-tinta-2">
-          {clientes.length} clientes com processos no escritório.
-        </p>
-      </header>
+    <div>
+      <h1 className="text-lg font-bold text-navy">Clientes</h1>
+      <p className="mb-4 mt-0.5 text-xs text-suave">
+        Cadastro único com deduplicação automática e checagem de conflito de interesses
+      </p>
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-borda bg-superficie">
-        <table className="w-full text-left text-sm">
+      <div className="mb-3.5 rounded-lg border border-[#C9DAEA] bg-selo-azul px-3 py-2 text-[11.5px] text-azul">
+        💡 Ao cadastrar uma nova parte, o sistema cruza CPF/CNPJ com toda a base e alerta
+        conflitos de interesse automaticamente.
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-borda bg-superficie p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-[13px] font-bold text-navy">Base de clientes</h3>
+          <BotaoNovoCliente />
+        </div>
+        <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-borda text-xs uppercase tracking-wide text-suave">
-              <th className="px-5 py-3 font-medium">Cliente</th>
-              <th className="px-5 py-3 font-medium">CPF / CNPJ</th>
-              <th className="px-5 py-3 font-medium">Contato</th>
-              <th className="px-5 py-3 text-right font-medium">Processos</th>
+            <tr className="border-b border-borda text-left text-[11px] uppercase tracking-wide text-suave">
+              <th className="px-2.5 py-2 font-semibold">Nome</th>
+              <th className="px-2.5 py-2 font-semibold">CPF/CNPJ</th>
+              <th className="px-2.5 py-2 font-semibold">Área</th>
+              <th className="px-2.5 py-2 font-semibold">Processos</th>
+              <th className="px-2.5 py-2 font-semibold">Docs</th>
+              <th className="px-2.5 py-2 font-semibold">Status</th>
+              <th className="px-2.5 py-2 font-semibold">Responsável</th>
             </tr>
           </thead>
           <tbody>
-            {clientes.map((cliente) => {
-              const doCliente = processosDoCliente(cliente.id);
-              const ativos = doCliente.filter((processo) => processo.status === "ativo").length;
-              return (
-                <tr key={cliente.id} className="border-b border-borda last:border-b-0 hover:bg-plano">
-                  <td className="px-5 py-3.5">
-                    <p className="font-medium">{cliente.nome}</p>
-                    <p className="mt-0.5 text-xs text-suave">{cliente.cidade}</p>
-                  </td>
-                  <td className="px-5 py-3.5 font-mono text-xs text-tinta-2">
-                    {cliente.cpfCnpj}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <p className="text-tinta-2">{cliente.email}</p>
-                    <p className="mt-0.5 text-xs text-suave">{cliente.telefone}</p>
-                  </td>
-                  <td className="px-5 py-3.5 text-right tabular-nums text-tinta-2">
-                    {doCliente.length}
-                    {ativos > 0 && (
-                      <span className="text-xs text-suave"> ({ativos} em andamento)</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {clientes.map((cliente) => (
+              <tr key={cliente.id} className="border-b border-plano-2 last:border-b-0 hover:bg-realce">
+                <td className="px-2.5 py-2.5 font-bold">{cliente.nome}</td>
+                <td className="px-2.5 py-2.5">{cliente.cpfCnpj}</td>
+                <td className="px-2.5 py-2.5">{cliente.area}</td>
+                <td className="px-2.5 py-2.5">{cliente.processos}</td>
+                <td className="px-2.5 py-2.5">
+                  <Selo tom={cliente.documentos.tom}>{cliente.documentos.texto}</Selo>
+                </td>
+                <td className="px-2.5 py-2.5">
+                  <Selo tom={cliente.situacao.tom}>{cliente.situacao.texto}</Selo>
+                </td>
+                <td className="px-2.5 py-2.5">{cliente.responsavel}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
