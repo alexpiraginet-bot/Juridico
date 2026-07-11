@@ -1,0 +1,79 @@
+// Modelo de dados do LexFlow — Fase 2.
+//
+// Cada `model` vira uma tabela no PostgreSQL; cada campo, uma coluna.
+// Os nomes em código ficam em português (camelCase) e o @map traduz
+// para o padrão do banco (snake_case).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AreaProcesso {
+  TRABALHISTA
+  CIVEL
+  FAMILIA
+  TRIBUTARIO
+  CRIMINAL
+  CONSUMIDOR
+  OUTRA
+}
+
+enum FaseProcesso {
+  CONHECIMENTO
+  INSTRUCAO
+  SENTENCA
+  RECURSAL
+  EXECUCAO
+  ARQUIVADO
+}
+
+model Cliente {
+  id        String     @id @default(cuid())
+  nome      String
+  cpfCnpj   String     @unique @map("cpf_cnpj")
+  email     String?
+  telefone  String?
+  cidade    String?
+  criadoEm  DateTime   @default(now()) @map("criado_em")
+  processos Processo[]
+
+  @@map("clientes")
+}
+
+model Processo {
+  id           String       @id @default(cuid())
+  numero       String       @unique // numeração única do CNJ
+  titulo       String
+  area         AreaProcesso
+  tribunal     String?
+  fase         FaseProcesso @default(CONHECIMENTO)
+  ultimoEvento String?      @map("ultimo_evento")
+  valorCausa   Decimal?     @map("valor_causa") @db.Decimal(14, 2)
+  clienteId    String       @map("cliente_id")
+  cliente      Cliente      @relation(fields: [clienteId], references: [id])
+  prazos       Prazo[]
+  criadoEm     DateTime     @default(now()) @map("criado_em")
+
+  @@map("processos")
+}
+
+model Prazo {
+  id          String   @id @default(cuid())
+  descricao   String
+  vencimento  DateTime @db.Date
+  responsavel String?
+  // Princípio do produto: prazo sugerido (por IA ou não) só entra na
+  // agenda oficial depois de validado por um advogado.
+  validado    Boolean  @default(false)
+  concluido   Boolean  @default(false)
+  processoId  String   @map("processo_id")
+  processo    Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  @@map("prazos")
+}
