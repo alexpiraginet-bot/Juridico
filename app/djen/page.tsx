@@ -3,6 +3,8 @@ import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { formatarData } from "@/lib/formatar";
 import { buscarNoDjen } from "@/lib/djen/comunica";
+import { acaoImportarIntimacoes, acaoAbrirIntimacao } from "@/lib/acoes/djen";
+import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Meus processos · DJEN" };
 export const dynamic = "force-dynamic";
@@ -19,18 +21,36 @@ function dataDjen(iso: string): string {
   return iso || "—";
 }
 
+// Quantas intimações já estão guardadas no banco. Protegido: sem banco
+// configurado, a busca ao DJEN continua funcionando (degrada com elegância).
+async function contarSalvas(): Promise<number> {
+  try {
+    return await bd.intimacao.count();
+  } catch {
+    return 0;
+  }
+}
+
 export default async function PaginaDjen({
   searchParams,
 }: {
-  searchParams: Promise<{ oab?: string; uf?: string; buscar?: string }>;
+  searchParams: Promise<{
+    oab?: string;
+    uf?: string;
+    buscar?: string;
+    novas?: string;
+    recebidas?: string;
+    erroImport?: string;
+  }>;
 }) {
-  const { oab, uf, buscar } = await searchParams;
+  const { oab, uf, buscar, novas, recebidas, erroImport } = await searchParams;
   const oabAtual = (oab ?? process.env.ADVOGADO_OAB ?? "").replace(/\D/g, "");
   const ufAtual = (uf ?? process.env.ADVOGADO_UF ?? "ES").toUpperCase();
   const nome = process.env.ADVOGADO_NOME;
 
   const deveBuscar = buscar === "1" && Boolean(oabAtual);
   const resultado = deveBuscar ? await buscarNoDjen(oabAtual, ufAtual) : null;
+  const jaSalvas = await contarSalvas();
 
   return (
     <div>
@@ -38,6 +58,12 @@ export default async function PaginaDjen({
       <p className="mb-4 mt-0.5 text-xs text-suave">
         Captura oficial das suas intimações pela OAB, direto do Diário de Justiça Eletrônico
         Nacional (CNJ).
+        {jaSalvas > 0 && (
+          <>
+            {" "}
+            · <b className="text-tinta">{jaSalvas.toLocaleString("pt-BR")}</b> já no sistema
+          </>
+        )}
       </p>
 
       <div className="mb-3.5 rounded-lg border border-[#C9DAEA] bg-selo-azul px-3 py-2 text-[11.5px] text-azul">
@@ -84,6 +110,18 @@ export default async function PaginaDjen({
         )}
       </form>
 
+      {novas != null && (
+        <div className="mb-3.5 rounded-lg border border-[#BFD8BF] bg-selo-verde px-3 py-2 text-[12.5px] text-verde-escuro">
+          📥 Importadas <b>{novas}</b> nova{novas === "1" ? "" : "s"}
+          {recebidas ? <> de {recebidas} comunicações lidas</> : null} — as repetidas foram ignoradas.
+        </div>
+      )}
+      {erroImport && (
+        <div className="mb-3.5 rounded-lg border border-[#E5C4C0] bg-selo-vermelho px-3 py-2 text-[12.5px] font-semibold text-vermelho">
+          ⚠️ {erroImport}
+        </div>
+      )}
+
       {!resultado && (
         <div className="rounded-xl border border-dashed border-borda bg-superficie p-8 text-center">
           <p className="text-[14px] font-semibold text-navy">
@@ -91,8 +129,8 @@ export default async function PaginaDjen({
           </p>
           <p className="mx-auto mt-1 max-w-lg text-[12.5px] text-suave">
             O sistema consulta o DJEN e traz as comunicações publicadas para a OAB informada —
-            cada uma com o número do processo. Depois desta primeira fatia, a busca passa a rodar
-            sozinha, de tempos em tempos, para capturar novidades.
+            cada uma com o número do processo. Depois de buscar, você pode importar tudo para o
+            sistema; a busca automática de tempos em tempos vem em seguida.
           </p>
         </div>
       )}
@@ -113,6 +151,18 @@ export default async function PaginaDjen({
               {resultado.processosUnicos.length} processo{resultado.processosUnicos.length === 1 ? "" : "s"} distinto{resultado.processosUnicos.length === 1 ? "" : "s"}
             </Selo>
             <span className="text-xs text-suave">OAB/{ufAtual} {oabAtual}</span>
+            {resultado.comunicacoes.length > 0 && (
+              <form action={acaoImportarIntimacoes} className="ml-auto">
+                <input type="hidden" name="oab" value={oabAtual} />
+                <input type="hidden" name="uf" value={ufAtual} />
+                <button
+                  type="submit"
+                  className="rounded-lg border border-verde bg-selo-verde px-3 py-1.5 text-[12px] font-semibold text-verde-escuro hover:bg-verde hover:text-white"
+                >
+                  📥 Importar para o sistema
+                </button>
+              </form>
+            )}
           </div>
 
           {resultado.comunicacoes.length === 0 ? (
@@ -137,6 +187,36 @@ export default async function PaginaDjen({
                     </p>
                   )}
                   {c.resumo && <p className="mt-1.5 text-xs leading-relaxed text-suave">{c.resumo}</p>}
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                    {c.teor.length > c.resumo.length && (
+                      <details className="min-w-0 text-xs">
+                        <summary className="cursor-pointer font-semibold text-verde-escuro">
+                          ler publicação inteira
+                        </summary>
+                        <p className="mt-2 whitespace-pre-wrap leading-relaxed text-tinta">{c.teor}</p>
+                      </details>
+                    )}
+                    <form action={acaoAbrirIntimacao} className="ml-auto shrink-0">
+                      <input type="hidden" name="djenId" value={c.id} />
+                      <input type="hidden" name="numeroProcesso" value={c.numeroProcesso} />
+                      <input type="hidden" name="tribunal" value={c.tribunal} />
+                      <input type="hidden" name="tipo" value={c.tipo} />
+                      <input type="hidden" name="orgao" value={c.orgao} />
+                      <input type="hidden" name="classe" value={c.classe} />
+                      <input type="hidden" name="resumo" value={c.resumo} />
+                      <input type="hidden" name="teor" value={c.teor} />
+                      <input type="hidden" name="data" value={c.data} />
+                      <input type="hidden" name="oab" value={oabAtual} />
+                      <input type="hidden" name="uf" value={ufAtual} />
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-[#D9CFF0] bg-ia-fundo px-3 py-1.5 text-[11.5px] font-semibold text-ia-tinta hover:brightness-95"
+                      >
+                        ✨ Ver publicação e resumo da IA
+                      </button>
+                    </form>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -144,7 +224,7 @@ export default async function PaginaDjen({
 
           <p className="mt-4 flex items-center gap-2 text-[11.5px] text-suave">
             <SeloIA>próximo passo</SeloIA>
-            importar estes processos para o sistema e ligar a busca automática de hora em hora.
+            ligar a busca automática de hora em hora, para capturar as novidades sozinho.
           </p>
         </>
       )}

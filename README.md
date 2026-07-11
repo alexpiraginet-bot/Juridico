@@ -58,8 +58,9 @@ app/                        # cada pasta vira uma página (App Router)
   page.tsx                  #   dashboard (rota /)
   atendimentos/             #   inbox WhatsApp + painel da IA (demonstração)
   clientes/                 #   cadastro real (listar/criar/editar/excluir)
-  processos/                #   carteira real com filtros por área
+  processos/                #   carteira real; abrir um dá resumo da IA (DataJud)
   intimacoes/               #   publicações do DJEN + validação de prazo
+    [id]/                   #     publicação na íntegra + resumo da IA
   djen/                     #   "meus processos": busca pela OAB no DJEN/CNJ
   jurisprudencia/           #   consulta pública ao DataJud/CNJ (dados reais)
   prazos/                   #   agenda oficial com validação humana
