@@ -560,11 +560,52 @@ As peças:
 
 ---
 
+## Passo 18 — guardar as intimações no banco (sem duplicar)
+
+> Commit: `Passo 18: DJEN — importar e deduplicar intimações no banco`
+
+O Passo 17 trouxe as comunicações do DJEN para a tela; este passo as
+**guarda**. Agora um botão "📥 Importar para o sistema" salva no banco
+tudo o que a OAB tem no Diário — inclusive os processos antigos (o
+*backfill* histórico).
+
+As peças:
+
+- **`prisma/schema.prisma`** ganha o modelo **`Intimacao`** — a captura
+  crua do Diário. Repare que ela **não vira `Processo`** ainda: um
+  `Processo` exige um `Cliente` (a parte representada), e dizer quem é o
+  cliente é uma decisão humana. A intimação é a matéria-prima; promovê-la
+  a processo é um passo posterior, feito por uma pessoa. Fiel ao
+  princípio: *a máquina traz, o advogado decide.*
+- **`lib/djen/comunica.ts`** ganha duas coisas: um **id estável**
+  (`djenId`) para cada comunicação — a mesma publicação sempre gera o
+  mesmo id — e a função **`buscarTudoNoDjen`**, que varre todas as
+  páginas (não só a primeira), para a importação e o backfill.
+- **`lib/acoes/djen.ts`** é a server action da importação: busca tudo e
+  grava com `createMany({ skipDuplicates: true })`. A deduplicação é o
+  coração aqui — rodar a importação dez vezes **não cria repetido**,
+  porque o `djenId` é único no banco. A ação devolve quantas eram novas.
+
+**Detalhes que valem estudar:**
+
+- **Deduplicação no banco, não na memória.** Em vez de a gente comparar
+  listas, o próprio PostgreSQL recusa `djenId` repetido (índice único) e
+  o Prisma pula essas linhas. É o banco garantindo a regra, sempre.
+- **Migração sem banco à mão.** Esta migração foi gerada pelo próprio
+  Prisma (`prisma migrate diff` entre o schema antigo e o novo) e é
+  aplicada na Vercel pelo `prisma migrate deploy` no build. O SQL é do
+  Prisma, não escrito no braço.
+- **Degrada com elegância.** A contagem "X já no sistema" é protegida:
+  sem banco configurado, a busca ao DJEN continua funcionando.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 4**: importar os processos encontrados no DJEN para o
-banco (sem duplicar), guardar as intimações e ligar a **busca automática
-de hora em hora** — além do WhatsApp Business API para os atendimentos.
+Ainda na **Fase 4**: abrir cada processo com um **resumo da IA** (do que
+se trata, em que fase está e os últimos andamentos, puxados do DataJud/CNJ)
+e ligar a **busca automática de hora em hora** — além do WhatsApp Business
+API para os atendimentos.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de

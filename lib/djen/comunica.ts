@@ -14,6 +14,7 @@
  * resposta real do CNJ só pode ser inspecionada rodando do Brasil.
  */
 
+import { createHash } from "node:crypto";
 import { formatarNumeroCnj } from "@/lib/juris/datajud";
 
 const BASE = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
@@ -50,6 +51,13 @@ function texto(obj: Cru, ...chaves: string[]): string {
 function resumir(teor: string, limite = 220): string {
   const limpo = teor.replace(/\s+/g, " ").trim();
   return limpo.length > limite ? `${limpo.slice(0, limite)}…` : limpo;
+}
+
+// Identificador estável de uma comunicação, para deduplicar na hora de
+// salvar: a mesma publicação sempre gera o mesmo id. Preferimos o id/hash
+// do próprio DJEN; sem ele, derivamos um do conteúdo.
+function estabilizar(...partes: string[]): string {
+  return "djen-" + createHash("sha1").update(partes.join("|")).digest("hex").slice(0, 24);
 }
 
 interface OpcoesBusca {
@@ -122,21 +130,18 @@ export async function buscarNoDjen(
         ? (dados.data as { items: unknown[] }).items
         : []) as Cru[];
 
-  const comunicacoes: ComunicacaoDjen[] = itens.map((item, indice) => {
+  const comunicacoes: ComunicacaoDjen[] = itens.map((item) => {
     const numeroCru = texto(item, "numeroprocessocommascara", "numero_processo", "numeroProcesso");
-    const numeroProcesso = numeroCru.includes("-")
-      ? numeroCru
-      : formatarNumeroCnj(numeroCru);
-    return {
-      id: texto(item, "id", "hash") || `djen-${indice}`,
-      data: texto(item, "data_disponibilizacao", "dataDisponibilizacao", "datadisponibilizacao"),
-      tribunal: texto(item, "siglaTribunal", "siglahtribunal", "sigla_tribunal", "tribunal"),
-      tipo: texto(item, "tipoComunicacao", "tipoDocumento", "tipocomunicacao", "tipo"),
-      orgao: texto(item, "nomeOrgao", "nomeorgao", "orgao"),
-      numeroProcesso,
-      classe: texto(item, "nomeClasse", "nomeclasse", "classe"),
-      resumo: resumir(texto(item, "texto", "teor", "conteudo")),
-    };
+    const numeroProcesso = numeroCru.includes("-") ? numeroCru : formatarNumeroCnj(numeroCru);
+    const data = texto(item, "data_disponibilizacao", "dataDisponibilizacao", "datadisponibilizacao");
+    const tribunal = texto(item, "siglaTribunal", "siglahtribunal", "sigla_tribunal", "tribunal");
+    const tipo = texto(item, "tipoComunicacao", "tipoDocumento", "tipocomunicacao", "tipo");
+    const orgao = texto(item, "nomeOrgao", "nomeorgao", "orgao");
+    const classe = texto(item, "nomeClasse", "nomeclasse", "classe");
+    const resumo = resumir(texto(item, "texto", "teor", "conteudo"));
+    const idReal = texto(item, "id", "hash");
+    const id = idReal || estabilizar(numeroProcesso, data, tipo, orgao, resumo);
+    return { id, data, tribunal, tipo, orgao, numeroProcesso, classe, resumo };
   });
 
   const processosUnicos = [
@@ -151,4 +156,53 @@ export async function buscarNoDjen(
         : comunicacoes.length;
 
   return { total, comunicacoes, processosUnicos };
+}
+
+/*
+ * Varre VÁRIAS páginas da OAB — é o que a importação e o backfill
+ * histórico usam para trazer tudo, não só a primeira página. Junta as
+ * comunicações e remove repetidas pelo id estável.
+ */
+export async function buscarTudoNoDjen(
+  numeroOab: string,
+  ufOab: string,
+  opcoes: {
+    maxPaginas?: number;
+    itensPorPagina?: number;
+    dataInicio?: string;
+    dataFim?: string;
+  } = {},
+): Promise<ResultadoDjen> {
+  const maxPaginas = opcoes.maxPaginas ?? 25;
+  const itensPorPagina = opcoes.itensPorPagina ?? 30;
+  const acumulado: ComunicacaoDjen[] = [];
+  let total = 0;
+
+  for (let pagina = 1; pagina <= maxPaginas; pagina++) {
+    const r = await buscarNoDjen(numeroOab, ufOab, {
+      pagina,
+      itensPorPagina,
+      dataInicio: opcoes.dataInicio,
+      dataFim: opcoes.dataFim,
+    });
+    // Erro na 1ª página: propaga. Erro depois de já ter trazido algo:
+    // devolve o que deu para não perder o trabalho.
+    if (r.erro) {
+      if (acumulado.length === 0) return r;
+      break;
+    }
+    acumulado.push(...r.comunicacoes);
+    total = r.total || total;
+    if (r.comunicacoes.length < itensPorPagina) break; // chegou ao fim
+  }
+
+  const vistos = new Set<string>();
+  const comunicacoes = acumulado.filter((c) => {
+    if (vistos.has(c.id)) return false;
+    vistos.add(c.id);
+    return true;
+  });
+  const processosUnicos = [...new Set(comunicacoes.map((c) => c.numeroProcesso).filter(Boolean))];
+
+  return { total: total || comunicacoes.length, comunicacoes, processosUnicos };
 }

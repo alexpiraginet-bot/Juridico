@@ -77,3 +77,27 @@ model Prazo {
 
   @@map("prazos")
 }
+
+// Comunicações capturadas do DJEN/CNJ pela OAB (Fase 4). Guardamos a
+// captura crua do Diário — sem virar Processo ainda, porque um Processo
+// exige um Cliente, e o cliente (a parte representada) é uma decisão
+// humana. A intimação é a matéria-prima; promovê-la a processo é um
+// passo posterior, feito por uma pessoa. `djenId` é a chave de
+// deduplicação: a mesma publicação nunca entra duas vezes.
+model Intimacao {
+  id                   String   @id @default(cuid())
+  djenId               String   @unique @map("djen_id")
+  numeroProcesso       String   @map("numero_processo")
+  tribunal             String?
+  tipo                 String?
+  orgao                String?
+  classe               String?
+  resumo               String?
+  dataDisponibilizacao String?  @map("data_disponibilizacao") // "AAAA-MM-DD", como o DJEN envia
+  oab                  String?
+  uf                   String?
+  criadoEm             DateTime @default(now()) @map("criado_em")
+
+  @@index([numeroProcesso])
+  @@map("intimacoes")
+}
