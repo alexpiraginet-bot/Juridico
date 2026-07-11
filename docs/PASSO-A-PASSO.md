@@ -647,12 +647,50 @@ As peças:
 
 ---
 
+## Passo 20 — a publicação inteira e o resumo da IA da intimação
+
+> Commit: `Passo 20: DJEN — publicação na íntegra e resumo da IA por intimação`
+
+Na tela *Meus processos*, cada comunicação mostrava só um trecho do teor
+(cortado com "…"). Agora dá para ler a **publicação inteira** e pedir um
+**resumo da IA** daquela intimação — do que se trata, o que ela exige e o
+prazo que o próprio texto menciona.
+
+O que mudou:
+
+- **`lib/djen/comunica.ts`** passa a guardar o **teor completo** (`teor`),
+  não só a prévia (`resumo`). Antes a gente jogava o texto fora ao cortar;
+  agora ele fica.
+- **`prisma/schema.prisma`** ganha a coluna `teor` na `Intimacao` (migração
+  automática), e a importação salva o texto todo.
+- **`lib/ia.ts`** ganha `resumirIntimacaoComClaude`: lê o teor e devolve, em
+  JSON, o resumo, "o que pede", o **prazo mencionado no texto** (sem
+  calcular datas nem inventar prazo) e pontos de atenção.
+- **`app/intimacoes/[id]/page.tsx`** — a página da publicação: resumo da IA
+  (dentro de `<Suspense>`) e a **íntegra** logo abaixo.
+- Na lista (`/djen`), cada cartão ganhou um **"ler publicação inteira"**
+  (abre o texto ali mesmo) e um botão **"✨ Ver publicação e resumo da IA"**
+  que salva aquela intimação e leva para a página de detalhe.
+
+**Detalhes que valem estudar:**
+
+- **Não perca o dado na origem.** O erro anterior era resumir cedo demais e
+  descartar o resto. Guardar o teor inteiro e cortar só na exibição é a
+  regra: transforme para mostrar, não para armazenar.
+- **Prazo é do texto, não da IA.** O resumo só repete o prazo que a
+  publicação traz — nada de calcular vencimento. Prazo na agenda continua
+  exigindo validação humana (princípio do produto).
+- **`<details>` nativo.** "Ler publicação inteira" usa a tag `<details>` do
+  HTML — abre e fecha sem uma linha de JavaScript.
+
+---
+
 ## O que vem a seguir
 
 Ainda na **Fase 4**: ligar a **busca automática de hora em hora** do DJEN
 (captura sozinha os processos novos) — além do WhatsApp Business API para
 os atendimentos. E, quando fizer sentido, puxar os **autos completos** do
-PJe (com credenciais) para além dos andamentos.
+PJe (com credenciais) para além dos andamentos e das intimações.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de

@@ -36,6 +36,7 @@ export async function importarIntimacoes(numeroOab: string, ufOab: string): Prom
     orgao: c.orgao || null,
     classe: c.classe || null,
     resumo: c.resumo || null,
+    teor: c.teor || null,
     dataDisponibilizacao: c.data || null,
     oab,
     uf,
@@ -66,4 +67,37 @@ export async function acaoImportarIntimacoes(dados: FormData) {
 
   revalidatePath("/djen");
   redirect(`/djen?${q.toString()}`);
+}
+
+// Abre UMA publicação: salva (se ainda não estiver) e leva para a página
+// de detalhe, onde aparece o teor completo e o resumo da IA. Os dados vêm
+// nos campos ocultos do formulário do cartão (o teor completo inclusive).
+export async function acaoAbrirIntimacao(dados: FormData) {
+  const campo = (nome: string) => {
+    const v = String(dados.get(nome) ?? "").trim();
+    return v || null;
+  };
+  const djenId = campo("djenId");
+  const numeroProcesso = campo("numeroProcesso") ?? "";
+  if (!djenId) redirect("/djen");
+
+  const registro = await bd.intimacao.upsert({
+    where: { djenId },
+    update: { teor: campo("teor"), resumo: campo("resumo") },
+    create: {
+      djenId,
+      numeroProcesso,
+      tribunal: campo("tribunal"),
+      tipo: campo("tipo"),
+      orgao: campo("orgao"),
+      classe: campo("classe"),
+      resumo: campo("resumo"),
+      teor: campo("teor"),
+      dataDisponibilizacao: campo("data"),
+      oab: campo("oab"),
+      uf: campo("uf"),
+    },
+  });
+
+  redirect(`/intimacoes/${registro.id}`);
 }

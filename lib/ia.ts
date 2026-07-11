@@ -197,3 +197,86 @@ Explique este processo.`;
 
   return JSON.parse(texto) as ResumoDoProcesso;
 }
+
+/*
+ * Resumo de UMA publicação/intimação do DJEN, a partir do teor completo.
+ * Mesma disciplina: usa só o texto dado, não inventa prazos, e o que
+ * afirmar sobre prazo vem do próprio texto. Serve para o advogado
+ * entender rápido o que a publicação exige — sempre com revisão humana.
+ */
+export interface ResumoDaIntimacao {
+  resumo: string;
+  oQuePede: string;
+  prazoMencionado: string;
+  pontosDeAtencao: string[];
+}
+
+const INSTRUCOES_DA_INTIMACAO = `Você é o assistente do LexFlow que lê publicações do Diário de Justiça para advogados brasileiros e explica, em português claro, o que cada uma significa.
+
+A partir do TEOR da publicação (e do contexto: número do processo, tipo, órgão, classe), produza:
+- "resumo": em 2 a 4 frases, do que se trata a publicação.
+- "oQuePede": a providência que ela exige do advogado (contestar, recorrer, se manifestar, comparecer a audiência, pagar custas...), ou "nenhuma providência aparente".
+- "prazoMencionado": o prazo citado NO TEXTO (ex.: "15 dias úteis a partir da intimação"), ou "nenhum prazo identificado no texto". NÃO calcule datas nem invente prazos.
+- "pontosDeAtencao": riscos, ambiguidades ou o que conferir nos autos.
+
+Regras: use SOMENTE o que está no teor. Não invente. Não afirme prazo que o texto não traz.`;
+
+export async function resumirIntimacaoComClaude(dados: {
+  numeroProcesso: string;
+  tipo: string;
+  orgao: string;
+  classe: string;
+  teor: string;
+}): Promise<ResumoDaIntimacao> {
+  const cliente = new Anthropic();
+
+  const pedido = `Contexto:
+- Número do processo: ${dados.numeroProcesso || "não informado"}
+- Tipo: ${dados.tipo || "não informado"} · Classe: ${dados.classe || "não informada"}
+- Órgão: ${dados.orgao || "não informado"}
+
+Teor da publicação:
+"""
+${dados.teor.slice(0, 12000)}
+"""
+
+Explique esta publicação.`;
+
+  const resposta = await cliente.messages.create({
+    model: process.env.MODELO_IA ?? MODELO_PADRAO,
+    max_tokens: 4000,
+    thinking: { type: "adaptive" },
+    output_config: {
+      effort: "medium",
+      format: {
+        type: "json_schema",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            resumo: { type: "string" },
+            oQuePede: { type: "string" },
+            prazoMencionado: { type: "string" },
+            pontosDeAtencao: { type: "array", items: { type: "string" } },
+          },
+          required: ["resumo", "oQuePede", "prazoMencionado", "pontosDeAtencao"],
+        },
+      },
+    },
+    system: INSTRUCOES_DA_INTIMACAO,
+    messages: [{ role: "user", content: pedido }],
+  });
+
+  if (resposta.stop_reason === "refusal") {
+    throw new Error("O modelo recusou resumir esta publicação.");
+  }
+
+  const texto = resposta.content
+    .filter((bloco): bloco is Anthropic.TextBlock => bloco.type === "text")
+    .map((bloco) => bloco.text)
+    .join("")
+    .trim();
+
+  if (!texto) throw new Error("A IA não retornou o resumo — tente novamente.");
+  return JSON.parse(texto) as ResumoDaIntimacao;
+}

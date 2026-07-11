@@ -3,7 +3,7 @@ import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { formatarData } from "@/lib/formatar";
 import { buscarNoDjen } from "@/lib/djen/comunica";
-import { acaoImportarIntimacoes } from "@/lib/acoes/djen";
+import { acaoImportarIntimacoes, acaoAbrirIntimacao } from "@/lib/acoes/djen";
 import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Meus processos · DJEN" };
@@ -187,6 +187,36 @@ export default async function PaginaDjen({
                     </p>
                   )}
                   {c.resumo && <p className="mt-1.5 text-xs leading-relaxed text-suave">{c.resumo}</p>}
+
+                  <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                    {c.teor.length > c.resumo.length && (
+                      <details className="min-w-0 text-xs">
+                        <summary className="cursor-pointer font-semibold text-verde-escuro">
+                          ler publicação inteira
+                        </summary>
+                        <p className="mt-2 whitespace-pre-wrap leading-relaxed text-tinta">{c.teor}</p>
+                      </details>
+                    )}
+                    <form action={acaoAbrirIntimacao} className="ml-auto shrink-0">
+                      <input type="hidden" name="djenId" value={c.id} />
+                      <input type="hidden" name="numeroProcesso" value={c.numeroProcesso} />
+                      <input type="hidden" name="tribunal" value={c.tribunal} />
+                      <input type="hidden" name="tipo" value={c.tipo} />
+                      <input type="hidden" name="orgao" value={c.orgao} />
+                      <input type="hidden" name="classe" value={c.classe} />
+                      <input type="hidden" name="resumo" value={c.resumo} />
+                      <input type="hidden" name="teor" value={c.teor} />
+                      <input type="hidden" name="data" value={c.data} />
+                      <input type="hidden" name="oab" value={oabAtual} />
+                      <input type="hidden" name="uf" value={ufAtual} />
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-[#D9CFF0] bg-ia-fundo px-3 py-1.5 text-[11.5px] font-semibold text-ia-tinta hover:brightness-95"
+                      >
+                        ✨ Ver publicação e resumo da IA
+                      </button>
+                    </form>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -194,7 +224,7 @@ export default async function PaginaDjen({
 
           <p className="mt-4 flex items-center gap-2 text-[11.5px] text-suave">
             <SeloIA>próximo passo</SeloIA>
-            abrir cada processo com um resumo da IA e ligar a busca automática de hora em hora.
+            ligar a busca automática de hora em hora, para capturar as novidades sozinho.
           </p>
         </>
       )}

@@ -74,9 +74,9 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 2. ✅ Fase 1.5 — unificação com o protótipo LexFlow (identidade + 8 telas).
 3. ✅ Fase 2 — PostgreSQL na nuvem + Prisma, CRUD real de clientes,
    processos e prazos (com validação humana de prazos).
-4. 🟡 Fase 5 (em andamento) — IA real via API do Claude nas minutas e
-   consulta pública de jurisprudência ao DataJud/CNJ. Faltam: relato
-   fático e análise de intimações por IA.
+4. 🟡 Fase 5 (em andamento) — IA real via API do Claude nas minutas, no
+   resumo de processos (andamentos do DataJud) e no resumo de intimações
+   do DJEN. Falta: relato fático dos atendimentos por IA.
 5. ⬜ Fase 3 — autenticação, perfis e auditoria.
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por

@@ -27,7 +27,8 @@ export interface ComunicacaoDjen {
   orgao: string;
   numeroProcesso: string; // já formatado no padrão CNJ
   classe: string;
-  resumo: string; // trecho do teor
+  resumo: string; // trecho do teor (prévia para a lista)
+  teor: string; // teor COMPLETO da publicação
 }
 
 export interface ResultadoDjen {
@@ -48,9 +49,12 @@ function texto(obj: Cru, ...chaves: string[]): string {
   return "";
 }
 
-function resumir(teor: string, limite = 220): string {
-  const limpo = teor.replace(/\s+/g, " ").trim();
-  return limpo.length > limite ? `${limpo.slice(0, limite)}…` : limpo;
+function limparTexto(teor: string): string {
+  return teor.replace(/\s+/g, " ").trim();
+}
+
+function resumir(texto: string, limite = 220): string {
+  return texto.length > limite ? `${texto.slice(0, limite)}…` : texto;
 }
 
 // Identificador estável de uma comunicação, para deduplicar na hora de
@@ -138,10 +142,11 @@ export async function buscarNoDjen(
     const tipo = texto(item, "tipoComunicacao", "tipoDocumento", "tipocomunicacao", "tipo");
     const orgao = texto(item, "nomeOrgao", "nomeorgao", "orgao");
     const classe = texto(item, "nomeClasse", "nomeclasse", "classe");
-    const resumo = resumir(texto(item, "texto", "teor", "conteudo"));
+    const teor = limparTexto(texto(item, "texto", "teor", "conteudo"));
+    const resumo = resumir(teor);
     const idReal = texto(item, "id", "hash");
     const id = idReal || estabilizar(numeroProcesso, data, tipo, orgao, resumo);
-    return { id, data, tribunal, tipo, orgao, numeroProcesso, classe, resumo };
+    return { id, data, tribunal, tipo, orgao, numeroProcesso, classe, resumo, teor };
   });
 
   const processosUnicos = [

@@ -92,7 +92,8 @@ model Intimacao {
   tipo                 String?
   orgao                String?
   classe               String?
-  resumo               String?
+  resumo               String?  // prévia (para a lista)
+  teor                 String?  // teor COMPLETO da publicação
   dataDisponibilizacao String?  @map("data_disponibilizacao") // "AAAA-MM-DD", como o DJEN envia
   oab                  String?
   uf                   String?
