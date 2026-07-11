@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { BarraLateral } from "@/components/BarraLateral";
-import { BarraSuperior } from "@/components/BarraSuperior";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,15 +15,7 @@ export default function LayoutRaiz({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body className="bg-plano text-[14px] font-sans text-tinta antialiased">
-        <div className="flex h-screen overflow-hidden">
-          <BarraLateral />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <BarraSuperior />
-            <main className="flex-1 overflow-y-auto p-5 md:p-6">{children}</main>
-          </div>
-        </div>
-      </body>
+      <body className="bg-plano text-[14px] font-sans text-tinta antialiased">{children}</body>
     </html>
   );
 }

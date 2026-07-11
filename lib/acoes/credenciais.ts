@@ -1,22 +1,24 @@
 "use server";
 
 /*
- * Ações de servidor das credenciais jurídicas (OAB). É o que a varredura
- * automática do DJEN usa para puxar os processos de cada usuário. Só as
- * credenciais `ativa` entram no cron diário.
+ * Ações das credenciais jurídicas (OAB) — o DONO_ESCRITORIO cadastra as
+ * OABs dos usuários da SUA equipe. É o que a varredura automática do DJEN
+ * usa para puxar os processos de cada um. Só as credenciais `ativa` entram
+ * no cron diário. Tudo escopado ao Team do dono.
  */
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
-import { exigirSuperadmin } from "@/lib/auth";
+import { exigirDono } from "@/lib/auth";
 
 function texto(dados: FormData, campo: string): string {
   return String(dados.get(campo) ?? "").trim();
 }
 
 export async function criarCredencial(dados: FormData) {
-  await exigirSuperadmin();
+  const dono = await exigirDono();
+
   const numero = texto(dados, "numero").replace(/\D/g, "");
   const uf = texto(dados, "uf").toUpperCase();
   const nomeAdvogado = texto(dados, "nomeAdvogado");
@@ -28,16 +30,19 @@ export async function criarCredencial(dados: FormData) {
   } else if (uf.length !== 2) {
     erro = "UF deve ter 2 letras (ex.: ES).";
   } else {
-    try {
-      await bd.credencialOab.create({ data: { numero, uf, nomeAdvogado, usuarioId } });
-    } catch (excecao) {
-      const codigo = (excecao as { code?: string }).code;
-      erro =
-        codigo === "P2002"
-          ? `A OAB ${numero}/${uf} já está cadastrada.`
-          : codigo === "P2003"
-            ? "Usuário inválido — recarregue a página e tente de novo."
+    // O usuário-alvo precisa ser da equipe do dono.
+    const alvo = await bd.usuario.findFirst({ where: { id: usuarioId, teamId: dono.teamId } });
+    if (!alvo) {
+      erro = "Usuário inválido — escolha alguém da sua equipe.";
+    } else {
+      try {
+        await bd.credencialOab.create({ data: { numero, uf, nomeAdvogado, usuarioId } });
+      } catch (excecao) {
+        erro =
+          (excecao as { code?: string }).code === "P2002"
+            ? `A OAB ${numero}/${uf} já está cadastrada.`
             : "Não foi possível salvar — verifique a conexão com o banco.";
+      }
     }
   }
 
@@ -46,11 +51,13 @@ export async function criarCredencial(dados: FormData) {
   redirect("/credenciais");
 }
 
-// Liga/desliga uma credencial na varredura automática, sem excluí-la.
 export async function alternarCredencial(id: string, ativa: boolean) {
-  await exigirSuperadmin();
+  const dono = await exigirDono();
   try {
-    await bd.credencialOab.update({ where: { id }, data: { ativa } });
+    await bd.credencialOab.updateMany({
+      where: { id, usuario: { teamId: dono.teamId } },
+      data: { ativa },
+    });
   } catch {
     redirect(
       `/credenciais?erro=${encodeURIComponent("Não foi possível atualizar — verifique a conexão com o banco.")}`,
@@ -60,9 +67,9 @@ export async function alternarCredencial(id: string, ativa: boolean) {
 }
 
 export async function excluirCredencial(id: string) {
-  await exigirSuperadmin();
+  const dono = await exigirDono();
   try {
-    await bd.credencialOab.delete({ where: { id } });
+    await bd.credencialOab.deleteMany({ where: { id, usuario: { teamId: dono.teamId } } });
   } catch {
     redirect(
       `/credenciais?erro=${encodeURIComponent("Não foi possível excluir — verifique a conexão com o banco.")}`,

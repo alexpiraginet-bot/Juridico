@@ -1,18 +1,27 @@
 "use client";
 
 /*
- * Barra superior: busca inteligente (demonstração), selo de protótipo,
- * atalho para a apresentação original e sino de notificações.
+ * Barra superior: busca (demonstração), atalho para a apresentação,
+ * o escritório e o usuário logado, com o botão Sair.
  */
 
+import { sair } from "@/lib/acoes/auth";
 import { useAviso } from "./useAviso";
 
-export function BarraSuperior() {
+export function BarraSuperior({
+  nome,
+  teamNome,
+  teamLogo,
+}: {
+  nome: string;
+  teamNome: string | null;
+  teamLogo: string | null;
+}) {
   const { avisar, elemento } = useAviso();
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-borda bg-superficie px-4 md:px-5">
-      <div className="relative w-full max-w-md">
+      <div className="relative hidden w-full max-w-md sm:block">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] opacity-60">
           🔎
         </span>
@@ -27,22 +36,18 @@ export function BarraSuperior() {
         />
       </div>
 
-      <span className="hidden whitespace-nowrap rounded-full border border-[#EBD7AE] bg-selo-ambar px-2.5 py-1 text-[11px] font-semibold text-ambar lg:inline">
-        PROTÓTIPO — dados fictícios
-      </span>
-
       <a
         href="/prototipo.html"
         target="_blank"
         rel="noopener"
-        className="hidden whitespace-nowrap rounded-lg border border-borda px-3 py-1.5 text-[11.5px] font-semibold hover:bg-plano md:inline"
+        className="ml-auto hidden whitespace-nowrap rounded-lg border border-borda px-3 py-1.5 text-[11.5px] font-semibold hover:bg-plano md:inline"
       >
         ▶ Apresentação
       </a>
 
       <button
         type="button"
-        className="relative ml-auto shrink-0 cursor-pointer text-lg"
+        className="relative shrink-0 cursor-pointer text-lg sm:ml-1"
         onClick={() => avisar("3 notificações: 1 prazo a validar · 2 intimações novas")}
         aria-label="Notificações"
       >
@@ -52,12 +57,28 @@ export function BarraSuperior() {
         </i>
       </button>
 
-      <img
-        src="/avatar-gustavo.png"
-        alt="Dr. Gustavo Shimabuco"
-        title="Dr. Gustavo Shimabuco · Sócio"
-        className="ml-1 h-8 w-8 shrink-0 rounded-full border border-borda object-cover"
-      />
+      <div className="ml-1 flex shrink-0 items-center gap-2">
+        {teamLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={teamLogo}
+            alt=""
+            className="h-8 w-8 rounded-lg border border-borda object-cover"
+          />
+        ) : null}
+        <div className="hidden text-right leading-tight md:block">
+          <b className="block max-w-[150px] truncate text-[12px] text-navy">{nome}</b>
+          {teamNome && <span className="block max-w-[150px] truncate text-[10.5px] text-suave">{teamNome}</span>}
+        </div>
+        <form action={sair}>
+          <button
+            type="submit"
+            className="rounded-lg border border-borda px-2.5 py-1.5 text-[11.5px] font-semibold text-tinta hover:bg-plano"
+          >
+            Sair
+          </button>
+        </form>
+      </div>
 
       {elemento}
     </header>

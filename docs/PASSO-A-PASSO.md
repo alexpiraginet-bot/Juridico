@@ -837,14 +837,48 @@ Vercel, entrar em `/entrar` e cadastrar os escritórios em `/central`.
 
 ---
 
+## Passo 25 — app protegido, papéis e o dono gerindo a equipe
+
+> Commit: `Passo 25: Fase 3 — app atrás do login, papéis e gestão da equipe pelo dono`
+
+Três coisas de uma vez, todas ligadas ao acesso:
+
+- **O app inteiro atrás do login.** As páginas foram para um **grupo de
+  rotas** `app/(app)/` cujo layout roda `exigirUsuario()` **uma vez** e
+  protege tudo. Quem não estiver logado vai para `/entrar` — que mora
+  **fora** do grupo e, por isso, aparece **limpa, sem a barra lateral**.
+- **Navegação por papel.** A barra lateral agora sabe quem é: o
+  **super-admin** vê só a *Central*; o **dono** vê o app + *Usuários* e
+  *Credenciais*; **advogados/assessores/estagiários** veem o app. A barra
+  superior mostra o escritório (com logo), o usuário e o botão **Sair**.
+- **O dono gere a própria equipe.** As telas de *Usuários* e *Credenciais*
+  deixaram de ser do super-admin e passaram a ser do **dono**, **escopadas
+  ao escritório dele**: ele cadastra advogados, assessores e estagiários
+  (cada um com login e papel) e as OABs de cada um — e nunca enxerga a
+  equipe de outro escritório.
+
+**Detalhes que valem estudar:**
+
+- **Grupo de rotas com parênteses.** `app/(app)/` não muda a URL (o
+  parêntese some do endereço) — serve só para dar um **layout e um guard
+  comuns** a um conjunto de páginas. É o jeito idiomático de proteger "tudo
+  menos o login".
+- **Escopo é segurança.** Toda leitura e ação da equipe filtra por
+  `teamId` do dono (`where: { teamId }`, `usuario: { teamId }`). Sem isso,
+  um dono poderia ver ou mexer na equipe alheia — multi-inquilino exige
+  essa disciplina em cada consulta.
+- **A senha, testada.** O `scrypt` foi conferido num teste isolado: senha
+  certa confere, errada não, e o sal aleatório faz a mesma senha virar
+  hashes diferentes.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 3**: o dono do escritório gerindo a **própria equipe**
-(com os papéis — assessor/estagiário só consulta); o **isolamento** (cada
-advogado vê só os seus processos); e o **compartilhamento** entre advogados
-do mesmo Team. Depois, proteger o app inteiro atrás do login e uma tela de
-login sem a barra lateral. Na **Fase 4**, o **WhatsApp Business API**; e, na
-**Fase 5**, o relato fático dos atendimentos por IA.
+Ainda na **Fase 3**: o **isolamento** (cada advogado vê só as suas
+intimações/processos) e o **compartilhamento** entre advogados do mesmo
+Team. Na **Fase 4**, o **WhatsApp Business API**; e, na **Fase 5**, o relato
+fático dos atendimentos por IA.
 Depois, a **Fase 3** (autenticação, perfis por função e o log de
 auditoria — "quem validou este prazo, e quando?") e o que falta da
 **Fase 5** (estender a IA para o relato fático e a análise de
