@@ -59,7 +59,7 @@ app/                        # cada pasta vira uma página (App Router)
   atendimentos/             #   inbox WhatsApp + painel da IA (demonstração)
   clientes/                 #   cadastro real (listar/criar/editar/excluir)
   processos/                #   carteira real; abrir um dá resumo da IA (DataJud)
-  intimacoes/               #   publicações do DJEN + validação de prazo
+  intimacoes/               #   publicações reais capturadas (lê a tabela Intimacao)
     [id]/                   #     publicação na íntegra + resumo da IA
   djen/                     #   "meus processos": busca pela OAB no DJEN/CNJ
   jurisprudencia/           #   consulta pública ao DataJud/CNJ (dados reais)

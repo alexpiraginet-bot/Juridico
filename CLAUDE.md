@@ -60,9 +60,10 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
   chave/conexão, a tela mostra aviso ou modo demonstração, nunca quebra.
   A IA usa o SDK `@anthropic-ai/sdk`; consultar a skill `claude-api`
   antes de mexer nela (modelo, thinking, tratamento de erros).
-- O "mundo" das telas de demonstração (dashboard, atendimentos,
-  intimações, tarefas, minutas) segue congelado em **10/07/2026**
-  (`lib/dados.ts`); datas dinâmicas são bem-vindas nas telas de banco.
+- O "mundo" das telas de demonstração (dashboard, atendimentos, tarefas,
+  minutas) segue congelado em **10/07/2026** (`lib/dados.ts`); datas
+  dinâmicas são bem-vindas nas telas de banco. **Intimações** deixou de
+  ser demonstração: lê a tabela real `Intimacao` (capturas do DJEN).
 - Commits pequenos, mensagem "Passo N: ..." quando fizer parte da
   construção guiada, corpo explicando o porquê.
 - Ao concluir um passo relevante, atualizar `docs/PASSO-A-PASSO.md` e o
