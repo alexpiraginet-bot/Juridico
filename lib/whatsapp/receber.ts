@@ -34,22 +34,37 @@ export interface ResultadoRecebimento {
   conversas: number; // conversas tocadas
 }
 
+// Roteamento: o número de negócio (phone_number_id) pertence a um escritório.
+// Descobrimos o Team dono para carimbar a conversa (isolamento por escritório).
+async function resolverTeamId(phoneNumberId: string | null): Promise<string | null> {
+  if (!phoneNumberId) return null;
+  const team = await bd.team.findFirst({
+    where: { whatsappPhoneNumberId: phoneNumberId },
+    select: { id: true },
+  });
+  return team?.id ?? null;
+}
+
 async function acharOuCriarConversa(
   telefone: string,
   phoneNumberId: string | null,
+  teamId: string | null,
   nome: string | undefined,
 ) {
   const existente = await bd.conversaWhatsapp.findFirst({ where: { telefone, phoneNumberId } });
   if (existente) {
-    // Atualiza o nome do contato se o WhatsApp mandou um novo.
-    if (nome && existente.nomeContato !== nome) {
-      return bd.conversaWhatsapp.update({ where: { id: existente.id }, data: { nomeContato: nome } });
+    // Atualiza o nome do contato e/ou o Team dono, se surgirem agora.
+    const dados: { nomeContato?: string; teamId?: string } = {};
+    if (nome && existente.nomeContato !== nome) dados.nomeContato = nome;
+    if (teamId && !existente.teamId) dados.teamId = teamId;
+    if (Object.keys(dados).length > 0) {
+      return bd.conversaWhatsapp.update({ where: { id: existente.id }, data: dados });
     }
     return existente;
   }
   try {
     return await bd.conversaWhatsapp.create({
-      data: { telefone, phoneNumberId, nomeContato: nome ?? null },
+      data: { telefone, phoneNumberId, teamId, nomeContato: nome ?? null },
     });
   } catch (excecao) {
     // Corrida: outra entrega criou a mesma conversa — busca de novo.
@@ -72,6 +87,7 @@ export async function processarEventoWhatsapp(evento: unknown): Promise<Resultad
       if (!value?.messages?.length) continue; // ignora eventos de status (entregue/lido)
 
       const phoneNumberId = value.metadata?.phone_number_id ?? null;
+      const teamId = await resolverTeamId(phoneNumberId);
       const nomes = new Map<string, string>();
       for (const c of value.contacts ?? []) {
         if (c.wa_id && c.profile?.name) nomes.set(c.wa_id, c.profile.name);
@@ -84,7 +100,7 @@ export async function processarEventoWhatsapp(evento: unknown): Promise<Resultad
           m.type === "text" ? (m.text?.body ?? "") : `[mensagem de ${m.type ?? "tipo desconhecido"}]`;
         const enviadoEm = m.timestamp ? new Date(Number(m.timestamp) * 1000) : new Date();
 
-        const conversa = await acharOuCriarConversa(telefone, phoneNumberId, nomes.get(telefone));
+        const conversa = await acharOuCriarConversa(telefone, phoneNumberId, teamId, nomes.get(telefone));
         tocadas.add(conversa.id);
 
         try {

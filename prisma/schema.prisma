@@ -146,6 +146,10 @@ model Team {
   id         String              @id @default(cuid())
   nome       String
   logoUrl    String?             @map("logo_url")
+  // Número de negócio do WhatsApp deste escritório (id do phone_number_id na
+  // Meta). É a chave do roteamento: o webhook liga a conversa recebida ao Team
+  // dono deste número. Único — um número pertence a um só escritório.
+  whatsappPhoneNumberId String?  @unique @map("whatsapp_phone_number_id")
   criadoEm   DateTime            @default(now()) @map("criado_em")
   usuarios   Usuario[]
   auditorias RegistroAuditoria[]

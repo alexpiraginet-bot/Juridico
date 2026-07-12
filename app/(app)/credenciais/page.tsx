@@ -5,6 +5,7 @@ import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
 import { exigirDono } from "@/lib/auth";
 import { alternarCredencial, criarCredencial, excluirCredencial } from "@/lib/acoes/credenciais";
+import { salvarNumeroWhatsapp } from "@/lib/acoes/whatsapp";
 
 export const metadata: Metadata = { title: "Credenciais jurídicas" };
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export default async function PaginaCredenciais({
   const dono = await exigirDono();
   const { erro } = await searchParams;
 
-  const [usuarios, credenciais] = await Promise.all([
+  const [usuarios, credenciais, time] = await Promise.all([
     bd.usuario.findMany({
       where: { teamId: dono.teamId },
       orderBy: { nome: "asc" },
@@ -30,6 +31,10 @@ export default async function PaginaCredenciais({
       where: { usuario: { teamId: dono.teamId } },
       orderBy: { criadoEm: "asc" },
       include: { usuario: { select: { nome: true } } },
+    }),
+    bd.team.findUnique({
+      where: { id: dono.teamId },
+      select: { whatsappPhoneNumberId: true },
     }),
   ]);
 
@@ -52,6 +57,41 @@ export default async function PaginaCredenciais({
       <div className="mb-3.5 rounded-lg border border-[#C9DAEA] bg-selo-azul px-3 py-2 text-[11.5px] text-azul">
         🔑 As credenciais <b>ativas</b> ({ativas}) são varridas automaticamente às <b>08h</b> (São
         Paulo). Pause uma credencial para tirá-la da automação sem apagá-la.
+      </div>
+
+      {/* Número do WhatsApp do escritório (Fase 4) */}
+      <div className="mb-4 rounded-xl border border-borda bg-superficie p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-bold text-navy">💬 WhatsApp do escritório</span>
+          <Selo tom={time?.whatsappPhoneNumberId ? "verde" : "cinza"}>
+            {time?.whatsappPhoneNumberId ? "vinculado" : "não vinculado"}
+          </Selo>
+        </div>
+        <p className="mt-1 text-[11.5px] text-suave">
+          Informe a <b>identificação do número</b> (<i>phone number ID</i>) da Meta — é o que liga as
+          conversas recebidas a este escritório. Passo a passo em{" "}
+          <code className="rounded bg-plano px-1">docs/whatsapp-configuracao.md</code>.
+        </p>
+        <form action={salvarNumeroWhatsapp} className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-suave">
+              Identificação do número (phone_number_id)
+            </span>
+            <input
+              name="phoneNumberId"
+              defaultValue={time?.whatsappPhoneNumberId ?? ""}
+              inputMode="numeric"
+              placeholder="Ex.: 123456789012345"
+              className="w-72 max-w-full rounded-lg border border-borda bg-superficie px-3 py-2 text-[13px] outline-none focus:border-verde"
+            />
+          </label>
+          <button
+            type="submit"
+            className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro"
+          >
+            Salvar
+          </button>
+        </form>
       </div>
 
       {/* Nova credencial */}

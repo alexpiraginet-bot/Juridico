@@ -100,7 +100,10 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    `MensagemWhatsapp`, o **webhook** (`/api/whatsapp/webhook`: handshake de
    verificação + recebimento com validação de assinatura HMAC e dedup) e o
    **envio** pela Graph API (`lib/whatsapp/`), tudo em modo demonstração sem
-   as chaves. Falta: rotear as conversas para o Team/advogado, ligar a tela
-   de Atendimentos aos dados reais e o envio a partir do chat.
+   as chaves. Já **roteia** as conversas: cada Team registra o seu
+   `whatsappPhoneNumberId` (tela `/credenciais`) e o webhook liga a conversa
+   recebida ao escritório dono do número. Guia de configuração da Meta em
+   `docs/whatsapp-configuracao.md`. Falta: ligar a tela de Atendimentos aos
+   dados reais e o envio a partir do chat.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.
