@@ -15,5 +15,8 @@
     "@remotion/renderer": "^4.0.489",
     "playwright-core": "^1.61.1",
     "remotion": "^4.0.489"
+  },
+  "dependencies": {
+    "@remotion/transitions": "^4.0.489"
   }
 }
