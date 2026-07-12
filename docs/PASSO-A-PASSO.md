@@ -1071,11 +1071,50 @@ sem as chaves, nada quebra e tudo fica em modo demonstração.
 
 ---
 
+## Passo 31 — rotear a conversa para o escritório dono do número
+
+> Commit: `Passo 31: Fase 4 — roteamento das conversas do WhatsApp por número`
+
+O webhook do Passo 30 já gravava as conversas, mas "soltas" — sem dono. Este
+passo responde à pergunta central do multi-inquilino: **de qual escritório é
+esta conversa?** A resposta é o **número de negócio** que a recebeu.
+
+- **Cada Team tem o seu número.** O `Team` ganhou `whatsappPhoneNumberId`
+  (único — um número pertence a um só escritório). O **dono** cadastra a
+  *identificação do número* (o `phone_number_id` da Meta) na tela de
+  **Credenciais**.
+- **O webhook liga os pontos.** Ao receber uma mensagem, ele lê o
+  `phone_number_id` que vem no evento, acha o Team que registrou aquele número
+  e **carimba a conversa** com o `teamId`. Se ainda não houver Team para o
+  número, a conversa fica sem dono (mas guardada) e é adotada assim que o dono
+  cadastrar o número.
+- **Um guia de verdade para a Meta.** `docs/whatsapp-configuracao.md` traz o
+  passo a passo (criar o app, número de teste, webhook, token permanente, App
+  Secret, variáveis na Vercel) e explica **de quem é o quê**: o *app* é nosso
+  (plataforma), o *número* é do cliente.
+
+**Detalhes que valem estudar:**
+
+- **A chave do roteamento é o número, não a mensagem.** Numa plataforma
+  multi-inquilino, o mesmo webhook recebe as conversas de todos os
+  escritórios. O que separa é o número de negócio que recebeu — por isso ele
+  é único por Team e é o índice do roteamento. É o mesmo princípio das
+  intimações (cada uma tem dono), agora aplicado à porta de entrada.
+- **Adoção retroativa.** Se a conversa chegou antes de o número ser
+  cadastrado, ela nasce sem `teamId`; quando o número é vinculado, o webhook
+  passa a preencher o dono nas próximas mensagens daquela conversa. Nada se
+  perde por ordem de cadastro.
+- **App é nosso, número é do cliente.** A arquitetura de *Tech Provider*: um
+  app da plataforma na Meta, e cada escritório conecta o próprio número. O
+  campo por Team é o que torna isso possível sem misturar as conversas.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 4**: **rotear** cada conversa recebida para o Team/advogado
-certo, ligar a tela de **Atendimentos** a essas conversas reais (juntando com o
-relato fático da Fase 5) e permitir **responder pelo chat**. As **Fases 3 e 5**
-já estão completas. O alicerce — banco na nuvem, IA conectada em todas as
-frentes, consulta pública ao Judiciário, captura oficial pela OAB, acesso
-multi-inquilino auditado e agora a fundação do WhatsApp — já está de pé.
+Ainda na **Fase 4**: ligar a tela de **Atendimentos** às conversas reais do
+Team (juntando com o relato fático da Fase 5) e permitir **responder pelo
+chat**. As **Fases 3 e 5** já estão completas. O alicerce — banco na nuvem, IA
+conectada em todas as frentes, consulta pública ao Judiciário, captura oficial
+pela OAB, acesso multi-inquilino auditado e o WhatsApp já recebendo e roteando
+— já está de pé.
