@@ -1,0 +1,19 @@
+{
+  "name": "lexflow-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vídeo-demo interno do LexFlow (Remotion). Isolado do app para não pesar no deploy.",
+  "type": "module",
+  "scripts": {
+    "capturar": "node capturar.mjs",
+    "still": "node still.mjs",
+    "render": "node renderizar.mjs"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "^4.0.489",
+    "@remotion/cli": "^4.0.489",
+    "@remotion/renderer": "^4.0.489",
+    "playwright-core": "^1.61.1",
+    "remotion": "^4.0.489"
+  }
+}
