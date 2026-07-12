@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="LEX">
+  <defs>
+    <linearGradient id="lex" x1="16" y1="18" x2="84" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4c8dff"/>
+      <stop offset="1" stop-color="#8b3bf0"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="#0b1220"/>
+  <path d="M28 22 H42 L78 78 H64 Z" fill="url(#lex)"/>
+  <path d="M72 22 H58 L22 78 H36 Z" fill="url(#lex)"/>
+  <path d="M50 44 L56 54 L50 60 L44 54 Z" fill="#0b1220" opacity=".4"/>
+</svg>
