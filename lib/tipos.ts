@@ -127,3 +127,31 @@ export interface Conversa {
   percentualDocs: number;
   perguntas: string[];
 }
+
+/* A análise da IA de um atendimento (o painel da direita). */
+export interface AnaliseAtendimento {
+  relatoFatico: string;
+  linhaDoTempo: EventoTimeline[];
+  checklist: ItemChecklist[];
+  percentualDocs: number;
+  perguntas: string[];
+}
+
+/*
+ * Forma que o painel de Atendimentos consome — serve tanto para as conversas
+ * REAIS do WhatsApp (`analiseDemo` nula; a IA preenche sob demanda) quanto para
+ * as de demonstração (`analiseDemo` já vem preenchida). Assim a tela não sabe
+ * (nem precisa saber) de onde a conversa veio.
+ */
+export interface ConversaPainel {
+  id: string;
+  nome: string;
+  iniciais: string;
+  contexto: string;
+  previa: string;
+  horario: string;
+  situacao: Rotulo;
+  telefone: string | null; // presente nas reais (para responder, no próximo passo)
+  mensagens: Mensagem[];
+  analiseDemo: AnaliseAtendimento | null;
+}

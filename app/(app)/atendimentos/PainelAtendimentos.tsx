@@ -1,11 +1,13 @@
 "use client";
 
 /*
- * Inbox do WhatsApp em três colunas: lista de conversas, chat e o
- * painel da IA (relato fático, linha do tempo, checklist e perguntas).
+ * Inbox do WhatsApp em três colunas: lista de conversas, chat e o painel da
+ * IA (relato fático, linha do tempo, checklist e perguntas).
  *
- * Componente de cliente: troca de conversa, envio de mensagem e os
- * avisos de demonstração acontecem no navegador.
+ * Recebe as conversas prontas por prop: podem ser as REAIS do escritório
+ * (Fase 4) ou as de demonstração (`demo`). O painel não sabe a diferença —
+ * só que as de demonstração já trazem a análise pronta, e as reais são
+ * analisadas pela IA sob demanda (botão "Gerar relato com IA").
  */
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -13,18 +15,23 @@ import { LinhaDoTempo } from "@/components/LinhaDoTempo";
 import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { useAviso } from "@/components/useAviso";
-import { conversaNaoTriada, conversas } from "@/lib/dados";
-import type { Mensagem } from "@/lib/tipos";
+import { conversaNaoTriada } from "@/lib/dados";
+import type { ConversaPainel, Mensagem } from "@/lib/tipos";
 import { analisarAtendimento } from "@/lib/acoes/atendimentos";
 import type { AnaliseDoAtendimento } from "@/lib/ia";
 
-export function PainelAtendimentos() {
+export function PainelAtendimentos({
+  conversas,
+  demo,
+}: {
+  conversas: ConversaPainel[];
+  demo: boolean;
+}) {
   const { avisar, elemento } = useAviso();
   const [indiceAtivo, setIndiceAtivo] = useState(0);
-  const [mensagens, setMensagens] = useState<Mensagem[]>(conversas[0].mensagens);
+  const [mensagens, setMensagens] = useState<Mensagem[]>(conversas[0]?.mensagens ?? []);
   const [rascunho, setRascunho] = useState("");
-  // Análise gerada pela IA (relato fático + linha do tempo + checklist +
-  // perguntas). Null = mostra o rascunho de demonstração da conversa.
+  // Análise gerada pela IA. Null = mostra a análise de demonstração (se houver).
   const [analise, setAnalise] = useState<AnaliseDoAtendimento | null>(null);
   const [erroIA, setErroIA] = useState<string | null>(null);
   const [gerando, iniciarGeracao] = useTransition();
@@ -36,10 +43,17 @@ export function PainelAtendimentos() {
     fimDoChat.current?.scrollIntoView();
   }, [mensagens]);
 
+  if (!conversa) {
+    return (
+      <div className="rounded-xl border border-dashed border-borda bg-superficie p-8 text-center text-[12.5px] text-suave">
+        Nenhuma conversa ainda.
+      </div>
+    );
+  }
+
   function trocarConversa(indice: number) {
     setIndiceAtivo(indice);
     setMensagens(conversas[indice].mensagens);
-    // Cada conversa recomeça no rascunho de demonstração até a IA rodar.
     setAnalise(null);
     setErroIA(null);
   }
@@ -47,12 +61,16 @@ export function PainelAtendimentos() {
   function enviarMensagem() {
     const texto = rascunho.trim();
     if (!texto) return;
+    if (!demo) {
+      // Envio real pelo chat chega no próximo passo — por ora, só leitura.
+      avisar("✋ Responder pelo chat chega no próximo passo — por enquanto, só leitura.");
+      return;
+    }
     const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     setMensagens((atuais) => [...atuais, { de: "escritorio", texto, hora, enviadaAgora: true }]);
     setRascunho("");
   }
 
-  // Chama a IA (no servidor) para redigir o relato a partir da conversa atual.
   function gerarRelato() {
     setErroIA(null);
     iniciarGeracao(async () => {
@@ -68,15 +86,16 @@ export function PainelAtendimentos() {
     });
   }
 
-  // O painel mostra a análise da IA quando existe; senão, o rascunho de
-  // demonstração da conversa. O percentual do checklist é derivado.
-  const relatoFatico = analise?.relatoFatico ?? conversa.relatoFatico;
-  const linhaDoTempo = analise?.linhaDoTempo ?? conversa.linhaDoTempo;
-  const checklist = analise?.checklist ?? conversa.checklist;
-  const perguntas = analise?.perguntas ?? conversa.perguntas;
+  // A análise mostrada: a da IA (se gerada) ou a de demonstração (se houver).
+  // Numa conversa real sem IA ainda, `base` é nula → estado vazio no relato.
+  const base = analise ?? conversa.analiseDemo;
+  const relatoFatico = base?.relatoFatico ?? null;
+  const linhaDoTempo = base?.linhaDoTempo ?? [];
+  const checklist = base?.checklist ?? [];
+  const perguntas = base?.perguntas ?? [];
   const percentualDocs = analise
     ? Math.round((checklist.filter((i) => i.recebido).length / Math.max(checklist.length, 1)) * 100)
-    : conversa.percentualDocs;
+    : (conversa.analiseDemo?.percentualDocs ?? 0);
 
   return (
     <div className="grid gap-3.5 lg:h-[calc(100vh-185px)] lg:grid-cols-[260px_1fr_330px]">
@@ -99,20 +118,22 @@ export function PainelAtendimentos() {
             </span>
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => avisar(conversaNaoTriada.aviso)}
-          className="block w-full px-3.5 py-3 text-left hover:bg-realce"
-        >
-          <b className="block text-[13px]">
-            {conversaNaoTriada.nome} <Selo tom="azul">novo</Selo>
-          </b>
-          <small className="block truncate text-[11.5px] text-suave">{conversaNaoTriada.previa}</small>
-          <span className="mt-1.5 flex items-center justify-between">
-            <Selo tom={conversaNaoTriada.situacao.tom}>{conversaNaoTriada.situacao.texto}</Selo>
-            <small className="text-suave">{conversaNaoTriada.horario}</small>
-          </span>
-        </button>
+        {demo && (
+          <button
+            type="button"
+            onClick={() => avisar(conversaNaoTriada.aviso)}
+            className="block w-full px-3.5 py-3 text-left hover:bg-realce"
+          >
+            <b className="block text-[13px]">
+              {conversaNaoTriada.nome} <Selo tom="azul">novo</Selo>
+            </b>
+            <small className="block truncate text-[11.5px] text-suave">{conversaNaoTriada.previa}</small>
+            <span className="mt-1.5 flex items-center justify-between">
+              <Selo tom={conversaNaoTriada.situacao.tom}>{conversaNaoTriada.situacao.texto}</Selo>
+              <small className="text-suave">{conversaNaoTriada.horario}</small>
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Chat */}
@@ -183,14 +204,16 @@ export function PainelAtendimentos() {
             disabled={gerando}
             className="ml-auto rounded-lg border border-[#D9CFF0] bg-ia-fundo px-3 py-1.5 text-[11.5px] font-semibold text-ia-tinta hover:brightness-95 disabled:opacity-60"
           >
-            {gerando ? "lendo a conversa…" : analise ? "✨ Regerar relato" : "✨ Gerar relato com IA"}
+            {gerando ? "lendo a conversa…" : base ? "✨ Regerar relato" : "✨ Gerar relato com IA"}
           </button>
         </div>
 
         <p className="mt-2 text-[11px] text-suave">
           {analise
             ? "✨ Relato redigido pela IA a partir desta conversa — confira antes de usar."
-            : "Mostrando o rascunho de demonstração. Gere o relato pela IA a partir das mensagens."}
+            : conversa.analiseDemo
+              ? "Mostrando o rascunho de demonstração. Gere o relato pela IA a partir das mensagens."
+              : "Ainda sem análise. Gere o relato pela IA a partir da conversa."}
         </p>
 
         {erroIA && (
@@ -206,38 +229,55 @@ export function PainelAtendimentos() {
           <p className="flex items-center gap-2 rounded-lg border border-borda bg-realce p-2.5 text-[12.5px] text-suave">
             <SeloIA>IA</SeloIA> lendo a conversa e redigindo o relato…
           </p>
-        ) : (
+        ) : relatoFatico ? (
           <p className="rounded-lg border border-borda bg-realce p-2.5 text-[12.5px] leading-relaxed">
             {relatoFatico}
           </p>
+        ) : (
+          <p className="rounded-lg border border-dashed border-borda bg-superficie p-2.5 text-[12.5px] text-suave">
+            Sem relato ainda — clique em <b>✨ Gerar relato com IA</b> para a IA ler a conversa e
+            redigir o rascunho.
+          </p>
         )}
 
-        <h4 className="mb-2 mt-3.5 text-xs font-bold uppercase tracking-wide text-navy">
-          Linha do tempo
-        </h4>
-        <LinhaDoTempo eventos={linhaDoTempo} />
+        {linhaDoTempo.length > 0 && (
+          <>
+            <h4 className="mb-2 mt-3.5 text-xs font-bold uppercase tracking-wide text-navy">
+              Linha do tempo
+            </h4>
+            <LinhaDoTempo eventos={linhaDoTempo} />
+          </>
+        )}
 
-        <h4 className="mb-2 mt-3.5 text-xs font-bold uppercase tracking-wide text-navy">
-          Checklist documental{" "}
-          <small className="font-bold text-verde-escuro">· {percentualDocs}% completo</small>
-        </h4>
-        <div className="mb-1 h-[7px] overflow-hidden rounded-md bg-selo-cinza">
-          <i className="block h-full bg-verde" style={{ width: `${percentualDocs}%` }} />
-        </div>
-        {checklist.map((item) => (
-          <p key={item.texto} className="flex items-start gap-2 py-1 text-[12.5px]">
-            {item.recebido ? "✔" : <span className="text-vermelho">✘</span>} {item.texto}
-          </p>
-        ))}
+        {checklist.length > 0 && (
+          <>
+            <h4 className="mb-2 mt-3.5 text-xs font-bold uppercase tracking-wide text-navy">
+              Checklist documental{" "}
+              <small className="font-bold text-verde-escuro">· {percentualDocs}% completo</small>
+            </h4>
+            <div className="mb-1 h-[7px] overflow-hidden rounded-md bg-selo-cinza">
+              <i className="block h-full bg-verde" style={{ width: `${percentualDocs}%` }} />
+            </div>
+            {checklist.map((item) => (
+              <p key={item.texto} className="flex items-start gap-2 py-1 text-[12.5px]">
+                {item.recebido ? "✔" : <span className="text-vermelho">✘</span>} {item.texto}
+              </p>
+            ))}
+          </>
+        )}
 
-        <h4 className="mb-2 mt-3.5 text-xs font-bold uppercase tracking-wide text-navy">
-          Perguntas sugeridas ao cliente
-        </h4>
-        <ul className="space-y-1 text-[12.5px] leading-relaxed">
-          {perguntas.map((pergunta) => (
-            <li key={pergunta}>• {pergunta}</li>
-          ))}
-        </ul>
+        {perguntas.length > 0 && (
+          <>
+            <h4 className="mb-2 mt-3.5 text-xs font-bold uppercase tracking-wide text-navy">
+              Perguntas sugeridas ao cliente
+            </h4>
+            <ul className="space-y-1 text-[12.5px] leading-relaxed">
+              {perguntas.map((pergunta) => (
+                <li key={pergunta}>• {pergunta}</li>
+              ))}
+            </ul>
+          </>
+        )}
 
         <div className="mt-3.5 flex flex-wrap gap-2">
           <button
