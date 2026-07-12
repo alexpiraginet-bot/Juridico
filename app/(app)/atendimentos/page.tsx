@@ -46,6 +46,11 @@ export default async function PaginaAtendimentos() {
           hora: hhmm(m.enviadoEm),
         }));
         const ultima = c.mensagens[c.mensagens.length - 1];
+        // Janela de 24h: conta a partir da última mensagem RECEBIDA do cliente.
+        const ultimaEntrada = [...c.mensagens].reverse().find((m) => m.direcao === "RECEBIDA");
+        const janelaAbertaAte = ultimaEntrada
+          ? new Date(ultimaEntrada.enviadoEm.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          : null;
         return {
           id: c.id,
           nome,
@@ -57,6 +62,7 @@ export default async function PaginaAtendimentos() {
           telefone: c.telefone,
           mensagens,
           analiseDemo: null,
+          janelaAbertaAte,
         };
       });
     }
@@ -83,6 +89,7 @@ export default async function PaginaAtendimentos() {
           percentualDocs: c.percentualDocs,
           perguntas: c.perguntas,
         },
+        janelaAbertaAte: null,
       }))
     : reais;
 

@@ -1148,11 +1148,46 @@ elegância).
 
 ---
 
+## Passo 33 — responder pelo chat (fecha o ciclo da Fase 4)
+
+> Commit: `Passo 33: Fase 4 — responder pelo chat (envio pela Graph API + janela de 24h)`
+
+O último elo: o escritório **responde** o cliente pelo WhatsApp, direto do
+atendimento. Com isso o ciclo fica completo — **receber → rotear → mostrar →
+responder**.
+
+- **Envia e grava.** A ação `responderAtendimento` (`lib/acoes/atendimentos.ts`)
+  confere que a conversa é do Team do usuário (isolamento), manda o texto pela
+  Graph API (`enviarTextoWhatsapp`, do Passo 30) e grava a mensagem como
+  `ENVIADA` no histórico. Auditada (`whatsapp.resposta`).
+- **A tela responde de verdade.** No painel, numa conversa real, o campo de
+  mensagem deixou de só avisar: agora envia (com estado "enviando…"), e a
+  resposta aparece no chat. Na demonstração, segue o eco local.
+- **A janela de 24h.** O WhatsApp só deixa mandar mensagem livre até 24h depois
+  da última mensagem do cliente; fora disso, só **modelos aprovados**. A tela
+  calcula essa janela (a partir da última mensagem recebida) e **avisa** quando
+  ela está fechada.
+
+**Detalhes que valem estudar:**
+
+- **Enviou mas não gravou?** Se a Graph API aceita mas o banco falha na hora de
+  registrar, a mensagem **já saiu** — não dá para "desenviar". A ação avisa
+  exatamente isso ("enviada, mas não gravei"), em vez de fingir que nada
+  aconteceu. Efeito colateral externo (mandar mensagem) muda como se trata o
+  erro: a ordem importa (envia primeiro, grava depois) e a falha é honesta.
+- **Regras do canal viram guarda na tela.** A janela de 24h é uma regra da
+  Meta, não nossa — mas a tela a antecipa, calculando o prazo e avisando, para
+  o advogado não escrever em vão. Trazer a regra do provedor para perto do
+  usuário é parte de integrar bem.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 4**: **responder pelo chat** (enviar a mensagem de verdade
-pela Graph API, gravando a resposta na conversa) e tratar a **janela de 24h /
-templates** da Meta. As **Fases 3 e 5** já estão completas. O alicerce — banco
-na nuvem, IA conectada em todas as frentes, consulta pública ao Judiciário,
-captura oficial pela OAB, acesso multi-inquilino auditado e o WhatsApp já
-recebendo, roteando e aparecendo na tela — já está de pé.
+O ciclo do WhatsApp está fechado — **recebe, roteia, mostra e responde**. O que
+resta da **Fase 4** é uma refinaria: a **gestão de modelos (templates)**
+aprovados, para conversar fora da janela de 24h (depende dos templates que cada
+escritório aprova na Meta). As **Fases 3 e 5** já estão completas. O alicerce —
+banco na nuvem, IA conectada em todas as frentes, consulta pública ao
+Judiciário, captura oficial pela OAB, acesso multi-inquilino auditado e o
+WhatsApp de ponta a ponta — já está de pé.
