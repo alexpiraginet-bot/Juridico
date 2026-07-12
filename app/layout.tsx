@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,15 @@ export default function LayoutRaiz({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body className="bg-plano text-[14px] font-sans text-tinta antialiased">{children}</body>
+      <body className="bg-plano text-[14px] font-sans text-tinta antialiased">
+        {children}
+        {/* Widget universal de suporte do Lex Technology (Atendente IA + anexo de print). */}
+        <Script
+          src="https://alex-hub-three.vercel.app/support-widget.js"
+          data-app="juridico"
+          strategy="lazyOnload"
+        />
+      </body>
     </html>
   );
 }
