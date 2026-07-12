@@ -105,8 +105,11 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    recebida ao escritório dono do número. A tela de **Atendimentos** já lê as
    conversas reais do Team (`force-dynamic`, escopadas por `teamId`; cai no
    mundo de demonstração quando não há nenhuma), com o **relato fático da IA**
-   rodando sobre as mensagens reais. Guia de configuração da Meta em
-   `docs/whatsapp-configuracao.md`. Falta: **responder pelo chat** (envio a
-   partir do atendimento) e templates/janela de 24h.
+   rodando sobre as mensagens reais. E já **responde pelo chat**
+   (`responderAtendimento`: envia pela Graph API, grava a resposta como
+   `ENVIADA` e audita), com aviso quando a **janela de 24h** está fechada.
+   Guia de configuração da Meta em `docs/whatsapp-configuracao.md`. O ciclo
+   receber → rotear → mostrar → responder está fechado; falta só a **gestão de
+   modelos (templates)** aprovados para mensagens fora da janela de 24h.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.

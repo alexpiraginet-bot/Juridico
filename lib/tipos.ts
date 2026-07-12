@@ -151,7 +151,10 @@ export interface ConversaPainel {
   previa: string;
   horario: string;
   situacao: Rotulo;
-  telefone: string | null; // presente nas reais (para responder, no próximo passo)
+  telefone: string | null; // presente nas reais (para responder)
   mensagens: Mensagem[];
   analiseDemo: AnaliseAtendimento | null;
+  // ISO do fim da janela de 24h (última mensagem do cliente + 24h). Fora dela,
+  // o WhatsApp só aceita modelos aprovados. Null quando não se aplica (demo).
+  janelaAbertaAte: string | null;
 }

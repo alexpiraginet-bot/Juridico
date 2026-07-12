@@ -24,6 +24,7 @@ const ACOES: Record<string, { rotulo: string; tom: TomSelo }> = {
   "escritorio.criado": { rotulo: "Escritório criado", tom: "navy" },
   "escritorio.removido": { rotulo: "Escritório removido", tom: "vermelho" },
   "whatsapp.numero": { rotulo: "Número do WhatsApp", tom: "azul" },
+  "whatsapp.resposta": { rotulo: "Resposta no WhatsApp", tom: "verde" },
 };
 
 // Consulta o log. Sempre inclui o Team (a coluna só aparece para o

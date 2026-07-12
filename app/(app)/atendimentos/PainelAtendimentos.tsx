@@ -17,7 +17,7 @@ import { SeloIA } from "@/components/SeloIA";
 import { useAviso } from "@/components/useAviso";
 import { conversaNaoTriada } from "@/lib/dados";
 import type { ConversaPainel, Mensagem } from "@/lib/tipos";
-import { analisarAtendimento } from "@/lib/acoes/atendimentos";
+import { analisarAtendimento, responderAtendimento } from "@/lib/acoes/atendimentos";
 import type { AnaliseDoAtendimento } from "@/lib/ia";
 
 export function PainelAtendimentos({
@@ -35,6 +35,7 @@ export function PainelAtendimentos({
   const [analise, setAnalise] = useState<AnaliseDoAtendimento | null>(null);
   const [erroIA, setErroIA] = useState<string | null>(null);
   const [gerando, iniciarGeracao] = useTransition();
+  const [enviando, iniciarEnvio] = useTransition();
   const fimDoChat = useRef<HTMLDivElement>(null);
 
   const conversa = conversas[indiceAtivo];
@@ -60,15 +61,29 @@ export function PainelAtendimentos({
 
   function enviarMensagem() {
     const texto = rascunho.trim();
-    if (!texto) return;
-    if (!demo) {
-      // Envio real pelo chat chega no próximo passo — por ora, só leitura.
-      avisar("✋ Responder pelo chat chega no próximo passo — por enquanto, só leitura.");
+    if (!texto || enviando) return;
+
+    if (demo) {
+      // Demonstração: eco local (não há WhatsApp por trás).
+      const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      setMensagens((atuais) => [...atuais, { de: "escritorio", texto, hora, enviadaAgora: true }]);
+      setRascunho("");
       return;
     }
-    const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    setMensagens((atuais) => [...atuais, { de: "escritorio", texto, hora, enviadaAgora: true }]);
-    setRascunho("");
+
+    // Conversa real: envia pelo WhatsApp (servidor) e grava a resposta.
+    iniciarEnvio(async () => {
+      const r = await responderAtendimento(conversa.id, texto);
+      if (r.ok) {
+        setMensagens((atuais) => [
+          ...atuais,
+          { de: "escritorio", texto, hora: r.hora, enviadaAgora: true },
+        ]);
+        setRascunho("");
+      } else {
+        avisar(`⚠️ ${r.erro}`);
+      }
+    });
   }
 
   function gerarRelato() {
@@ -96,6 +111,12 @@ export function PainelAtendimentos({
   const percentualDocs = analise
     ? Math.round((checklist.filter((i) => i.recebido).length / Math.max(checklist.length, 1)) * 100)
     : (conversa.analiseDemo?.percentualDocs ?? 0);
+
+  // Janela de 24h do WhatsApp: fora dela, só modelos aprovados. Demo (sem
+  // data) e conversas sem entrada do cliente são tratadas como abertas.
+  const janelaAberta = conversa.janelaAbertaAte
+    ? new Date(conversa.janelaAbertaAte).getTime() > Date.now()
+    : true;
 
   return (
     <div className="grid gap-3.5 lg:h-[calc(100vh-185px)] lg:grid-cols-[260px_1fr_330px]">
@@ -174,6 +195,12 @@ export function PainelAtendimentos({
           <div ref={fimDoChat} />
         </div>
 
+        {!demo && !janelaAberta && (
+          <div className="border-t border-[#E7D4A8] bg-selo-ambar px-3 py-1.5 text-[11px] text-ambar">
+            ⏳ Janela de 24h fechada — fora dela o WhatsApp só aceita <b>modelos aprovados</b>. Uma
+            mensagem livre pode ser recusada.
+          </div>
+        )}
         <div className="flex gap-2 border-t border-borda bg-superficie p-2.5">
           <input
             value={rascunho}
@@ -181,15 +208,17 @@ export function PainelAtendimentos({
             onKeyDown={(evento) => {
               if (evento.key === "Enter") enviarMensagem();
             }}
-            placeholder="Escreva uma mensagem…"
-            className="flex-1 rounded-full border border-borda px-3.5 py-2 text-[13px] outline-none"
+            placeholder={enviando ? "enviando…" : "Escreva uma mensagem…"}
+            disabled={enviando}
+            className="flex-1 rounded-full border border-borda px-3.5 py-2 text-[13px] outline-none disabled:opacity-60"
           />
           <button
             type="button"
             onClick={enviarMensagem}
-            className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro"
+            disabled={enviando}
+            className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro disabled:opacity-60"
           >
-            Enviar
+            {enviando ? "…" : "Enviar"}
           </button>
         </div>
       </div>
