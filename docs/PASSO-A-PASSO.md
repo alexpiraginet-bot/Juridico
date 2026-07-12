@@ -1028,13 +1028,54 @@ lê a conversa de verdade e redige tudo isso.
 
 ---
 
+## Passo 30 — a fundação do WhatsApp Business (Fase 4)
+
+> Commit: `Passo 30: Fase 4 — fundação do WhatsApp Business (webhook, envio e tabelas)`
+
+O começo de ligar os atendimentos ao mundo real. A tela de Atendimentos era
+uma demonstração; a partir daqui existe a **infraestrutura para receber e
+enviar mensagens de verdade** pela API oficial da Meta (WhatsApp Cloud API).
+Este passo é a "encanação" — as tabelas, o webhook e o envio; ligar a tela vem
+depois. Como toda integração externa do LexFlow, **degrada com elegância**:
+sem as chaves, nada quebra e tudo fica em modo demonstração.
+
+- **Tabelas reais.** `ConversaWhatsapp` (o fio com um contato num número de
+  negócio) e `MensagemWhatsapp` (RECEBIDA ou ENVIADA). Já nascem
+  multi-inquilino (`teamId`/`usuarioId`, como as intimações) — o roteio para o
+  dono vem no próximo passo.
+- **O webhook** (`/api/whatsapp/webhook`). Duas metades: o **GET** responde ao
+  *handshake* de verificação do Meta (devolve o `challenge` se o token bate); o
+  **POST** recebe as mensagens, **confere a assinatura** (HMAC do App Secret) e
+  grava. É uma rota pública — tem de ser, é o Meta que chama — então a
+  segurança mora na assinatura, não num login.
+- **O envio** (`lib/whatsapp/enviar.ts`). Fala com a Graph API por `fetch`
+  (sem SDK — é REST simples). O token é segredo e fica no servidor.
+
+**Detalhes que valem estudar:**
+
+- **Assinatura > login para webhooks.** Um webhook não pode exigir senha (quem
+  chama é um servidor da Meta, não uma pessoa). A garantia de que a mensagem é
+  autêntica é a **assinatura HMAC**: o Meta assina o corpo cru com o App
+  Secret; a rota recalcula e compara com `timingSafeEqual`. Corpo adulterado
+  não passa. Foi o que testei isolado antes de subir.
+- **Dedup em duas camadas.** O Meta pode reentregar o mesmo evento. A conversa
+  é única por (telefone, número de negócio); a mensagem é única por
+  `waMessageId`. Reentrega vira no-op — nada duplica.
+- **Responder 200 mesmo em erro nosso.** Se o banco falhar ao gravar,
+  respondemos 200 assim mesmo: um 4xx/5xx faria o Meta reentregar em loop, e a
+  dedup já cobre a reentrega quando o banco voltar. É uma inversão do instinto
+  ("erro → status de erro") que os webhooks pedem.
+- **Corpo cru para a assinatura.** A rota lê `request.text()` (não `.json()`):
+  a assinatura é sobre os **bytes exatos**, e reserializar o JSON mudaria um
+  byte e quebraria a conferência.
+
+---
+
 ## O que vem a seguir
 
-A **Fase 5** agora está completa: a IA de verdade escreve minutas, resume
-processos (DataJud) e intimações (DJEN) e redige o **relato fático** dos
-atendimentos. A **Fase 3** também (login, papéis, isolamento,
-compartilhamento e auditoria). O que resta do produto é a **Fase 4** — ligar
-o **WhatsApp Business API** para que os atendimentos deixem de ser
-demonstração e passem a receber as conversas de verdade. O alicerce — banco na
-nuvem, IA conectada em todas as frentes, consulta pública ao Judiciário,
-captura oficial pela OAB e acesso multi-inquilino auditado — já está de pé.
+Ainda na **Fase 4**: **rotear** cada conversa recebida para o Team/advogado
+certo, ligar a tela de **Atendimentos** a essas conversas reais (juntando com o
+relato fático da Fase 5) e permitir **responder pelo chat**. As **Fases 3 e 5**
+já estão completas. O alicerce — banco na nuvem, IA conectada em todas as
+frentes, consulta pública ao Judiciário, captura oficial pela OAB, acesso
+multi-inquilino auditado e agora a fundação do WhatsApp — já está de pé.

@@ -149,6 +149,7 @@ model Team {
   criadoEm   DateTime            @default(now()) @map("criado_em")
   usuarios   Usuario[]
   auditorias RegistroAuditoria[]
+  conversas  ConversaWhatsapp[]
 
   @@map("teams")
 }
@@ -172,6 +173,7 @@ model Usuario {
   // Publicações que outros donos compartilharam com este usuário.
   intimacoesRecebidas CompartilhamentoIntimacao[]
   auditorias          RegistroAuditoria[]
+  conversas           ConversaWhatsapp[]
 
   @@map("usuarios")
 }
@@ -224,4 +226,50 @@ model RegistroAuditoria {
   @@index([teamId, criadoEm])
   @@index([usuarioId])
   @@map("registros_auditoria")
+}
+
+// Fase 4 — atendimentos do WhatsApp de verdade. Uma conversa é o fio com UM
+// contato (o cliente) num número de negócio (`phoneNumberId`). Chega pelo
+// webhook do WhatsApp (Meta Cloud API). `usuarioId`/`teamId` são o dono/roteio
+// (nulos enquanto a conversa não foi atribuída) — o isolamento segue o mesmo
+// princípio das intimações.
+model ConversaWhatsapp {
+  id            String             @id @default(cuid())
+  telefone      String // E.164 do contato (só dígitos), ex.: "5527998877xxxx"
+  nomeContato   String?            @map("nome_contato")
+  phoneNumberId String?            @map("phone_number_id") // número de negócio que recebeu
+  usuarioId     String?            @map("usuario_id")
+  usuario       Usuario?           @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  teamId        String?            @map("team_id")
+  team          Team?              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  criadoEm      DateTime           @default(now()) @map("criado_em")
+  atualizadoEm  DateTime           @updatedAt @map("atualizado_em")
+  mensagens     MensagemWhatsapp[]
+
+  @@unique([telefone, phoneNumberId])
+  @@index([teamId])
+  @@index([usuarioId])
+  @@map("conversas_whatsapp")
+}
+
+// Cada mensagem trocada — RECEBIDA (cliente→escritório) ou ENVIADA
+// (escritório→cliente). `waMessageId` é o id do WhatsApp e é único: o webhook
+// pode reentregar o mesmo evento, então a dedup é do banco.
+enum DirecaoMensagem {
+  RECEBIDA
+  ENVIADA
+}
+
+model MensagemWhatsapp {
+  id          String           @id @default(cuid())
+  conversaId  String           @map("conversa_id")
+  conversa    ConversaWhatsapp @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  direcao     DirecaoMensagem
+  texto       String
+  waMessageId String?          @unique @map("wa_message_id")
+  enviadoEm   DateTime         @map("enviado_em") // horário informado pelo WhatsApp
+  criadoEm    DateTime         @default(now()) @map("criado_em")
+
+  @@index([conversaId])
+  @@map("mensagens_whatsapp")
 }
