@@ -94,8 +94,13 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
 6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
    causa do geobloqueio), importação para o banco (tabela `Intimacao`,
-   dedup) e **captura automática diária** (cron da Vercel às 08h BRT /
-   11h UTC → `/api/djen/varrer`, protegida por `CRON_SECRET`). Falta: o
-   WhatsApp Business API dos atendimentos.
+   dedup), **captura automática diária** (cron da Vercel às 08h BRT /
+   11h UTC → `/api/djen/varrer`, protegida por `CRON_SECRET`) e a **fundação
+   do WhatsApp Business** (Meta Cloud API): tabelas reais `ConversaWhatsapp`/
+   `MensagemWhatsapp`, o **webhook** (`/api/whatsapp/webhook`: handshake de
+   verificação + recebimento com validação de assinatura HMAC e dedup) e o
+   **envio** pela Graph API (`lib/whatsapp/`), tudo em modo demonstração sem
+   as chaves. Falta: rotear as conversas para o Team/advogado, ligar a tela
+   de Atendimentos aos dados reais e o envio a partir do chat.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.

@@ -72,6 +72,7 @@ app/                        # cada pasta vira uma página (App Router)
   credenciais/              #   credenciais de OAB por usuário (automação)
   auditoria/                #   log "quem fez o quê, e quando" (Fase 3)
   api/djen/varrer/          #   rota do cron diário (varre as OABs ativas)
+  api/whatsapp/webhook/     #   webhook do WhatsApp Business (Fase 4)
   globals.css               #   tokens de cor da marca (paleta do protótipo)
 components/                 # peças reutilizáveis (Selo, SeloIA, formulários…)
 lib/
@@ -82,6 +83,7 @@ lib/
   acoes/                    #   server actions — gravam no banco / chamam a IA
   juris/datajud.ts          #   cliente da API Pública do DataJud/CNJ
   djen/comunica.ts          #   cliente da API Comunica/DJEN (busca pela OAB)
+  whatsapp/                 #   WhatsApp Business: config, envio e recebimento
   generated/                #   cliente do Prisma (gerado; fora do git)
   dados.ts                  #   conteúdo das telas de demonstração
 prisma/                     # schema do banco, migrações e semente
@@ -110,4 +112,4 @@ O repositório está conectado à Vercel (deploy contínuo):
 3. ✅ **Fase 2 — banco de dados na nuvem**: PostgreSQL + Prisma, cadastro real de clientes, processos e prazos com validação humana.
 4. ✅ **Fase 5 — IA e dados reais**: minutas redigidas pela API do Claude, consulta pública de jurisprudência ao DataJud/CNJ, resumo de intimações do DJEN e **relato fático dos atendimentos** (a IA lê a conversa do WhatsApp e redige o relato, a linha do tempo, o checklist de documentos e as perguntas ao cliente — sempre com validação humana).
 5. ✅ **Fase 3 — autenticação e multi-inquilino**: login por e-mail+senha, app inteiro atrás do login com navegação por papel, painel central que cadastra escritórios, dono gerindo a própria equipe (usuários e credenciais de OAB), **isolamento** (cada advogado vê só as suas intimações), **compartilhamento** de uma publicação com um colega do mesmo escritório e **log de auditoria** (quem fez o quê, e quando).
-6. 🟡 **Fase 4 — integrações de comunicação** (em andamento): busca de processos pela OAB no DJEN/CNJ (tela *Meus processos*), importação para o banco e **captura automática diária** (cron da Vercel às 08h, região São Paulo); falta o WhatsApp Business API (atendimentos).
+6. 🟡 **Fase 4 — integrações de comunicação** (em andamento): busca de processos pela OAB no DJEN/CNJ (tela *Meus processos*), importação para o banco, **captura automática diária** (cron da Vercel às 08h, região São Paulo) e a **fundação do WhatsApp Business** (API oficial da Meta) — tabelas reais de conversa/mensagem, o webhook de recebimento (com validação de assinatura) e o envio pela Graph API, em modo demonstração sem as chaves. Falta ligar a tela de atendimentos aos dados reais.
