@@ -1110,11 +1110,49 @@ esta conversa?** A resposta é o **número de negócio** que a recebeu.
 
 ---
 
+## Passo 32 — a tela de Atendimentos lê as conversas reais
+
+> Commit: `Passo 32: Fase 4 — Atendimentos lê as conversas reais do WhatsApp`
+
+A tela de Atendimentos era uma demonstração congelada. Agora ela mostra as
+**conversas reais** do escritório — as que chegaram pelo webhook e foram
+roteadas no Passo 31 — e o relato fático da IA (Fase 5) roda sobre as mensagens
+de verdade. Sem conversas reais, cai no mundo de demonstração (degrada com
+elegância).
+
+- **A página virou dinâmica.** `app/(app)/atendimentos/page.tsx` agora é
+  `force-dynamic`: lê `ConversaWhatsapp` do Team do usuário (isolamento por
+  `teamId`), monta as conversas e passa prontas para o painel. Zero conversas
+  reais → usa as de demonstração, com um aviso.
+- **Uma forma só para o painel.** Criei `ConversaPainel` (`lib/tipos.ts`): a
+  tela consome esse tipo sem saber se a conversa é real ou de demonstração. A
+  diferença fica num campo — as de demonstração já trazem a análise pronta
+  (`analiseDemo`); as reais nascem sem, e a IA preenche sob demanda.
+- **Relato fático sobre conversa real.** O botão "✨ Gerar relato com IA"
+  (Passo 29) agora lê as mensagens reais do WhatsApp e redige o relato, a linha
+  do tempo, o checklist e as perguntas.
+
+**Detalhes que valem estudar:**
+
+- **Um tipo de fronteira.** Em vez de a tela ter dois caminhos (real e
+  demonstração), ela tem UM tipo (`ConversaPainel`) e a página faz a tradução
+  na entrada. É o padrão de "normalizar na borda": o componente fica simples
+  porque a variação foi resolvida antes de chegar nele.
+- **Honestidade na interface.** O campo de escrever mensagem, numa conversa
+  real, ainda não envia (isso é o próximo passo). Em vez de fingir que enviou,
+  ele avisa "responder pelo chat chega no próximo passo". Prometer o que não
+  faz é pior do que dizer que ainda não faz.
+- **Estado vazio que ensina.** Conversa real sem análise ainda? O painel não
+  fica em branco: mostra "clique em Gerar relato com IA". O vazio vira um
+  convite à próxima ação.
+
+---
+
 ## O que vem a seguir
 
-Ainda na **Fase 4**: ligar a tela de **Atendimentos** às conversas reais do
-Team (juntando com o relato fático da Fase 5) e permitir **responder pelo
-chat**. As **Fases 3 e 5** já estão completas. O alicerce — banco na nuvem, IA
-conectada em todas as frentes, consulta pública ao Judiciário, captura oficial
-pela OAB, acesso multi-inquilino auditado e o WhatsApp já recebendo e roteando
-— já está de pé.
+Ainda na **Fase 4**: **responder pelo chat** (enviar a mensagem de verdade
+pela Graph API, gravando a resposta na conversa) e tratar a **janela de 24h /
+templates** da Meta. As **Fases 3 e 5** já estão completas. O alicerce — banco
+na nuvem, IA conectada em todas as frentes, consulta pública ao Judiciário,
+captura oficial pela OAB, acesso multi-inquilino auditado e o WhatsApp já
+recebendo, roteando e aparecendo na tela — já está de pé.

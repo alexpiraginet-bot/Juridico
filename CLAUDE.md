@@ -102,8 +102,11 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    **envio** pela Graph API (`lib/whatsapp/`), tudo em modo demonstração sem
    as chaves. Já **roteia** as conversas: cada Team registra o seu
    `whatsappPhoneNumberId` (tela `/credenciais`) e o webhook liga a conversa
-   recebida ao escritório dono do número. Guia de configuração da Meta em
-   `docs/whatsapp-configuracao.md`. Falta: ligar a tela de Atendimentos aos
-   dados reais e o envio a partir do chat.
+   recebida ao escritório dono do número. A tela de **Atendimentos** já lê as
+   conversas reais do Team (`force-dynamic`, escopadas por `teamId`; cai no
+   mundo de demonstração quando não há nenhuma), com o **relato fático da IA**
+   rodando sobre as mensagens reais. Guia de configuração da Meta em
+   `docs/whatsapp-configuracao.md`. Falta: **responder pelo chat** (envio a
+   partir do atendimento) e templates/janela de 24h.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.
