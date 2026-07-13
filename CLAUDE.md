@@ -60,13 +60,14 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
   chave/conexão, a tela mostra aviso ou modo demonstração, nunca quebra.
   A IA usa o SDK `@anthropic-ai/sdk`; consultar a skill `claude-api`
   antes de mexer nela (modelo, thinking, tratamento de erros).
-- O "mundo" das telas de demonstração (só o **dashboard** agora, e o
-  fallback de **atendimentos** quando não há conversas reais) segue congelado
-  em **10/07/2026** (`lib/dados.ts`); datas dinâmicas são bem-vindas nas telas
-  de banco. **Intimações**, **Tarefas** e **Minutas** deixaram de ser
-  demonstração: leem/gravam tabelas reais (`Intimacao` do DJEN; `Tarefa` no
-  kanban por escritório; `Minuta` persistida com status IA→humana→aprovada).
-  Minutas ainda caem no roteiro de demonstração **sem** a `ANTHROPIC_API_KEY`.
+- Sobrou só o **fallback de atendimentos** (quando não há conversas reais)
+  usando os dados de demonstração congelados em **10/07/2026** (`lib/dados.ts`).
+  Datas dinâmicas são bem-vindas nas telas de banco. O **dashboard** agora é
+  real: agrega do banco (prazos a validar/vencer, intimações novas, tarefas
+  por coluna, minutas por status). **Intimações**, **Tarefas** e **Minutas**
+  também são reais (`Intimacao` do DJEN; `Tarefa` no kanban por escritório;
+  `Minuta` persistida com status IA→humana→aprovada). Minutas ainda caem no
+  roteiro de demonstração **sem** a `ANTHROPIC_API_KEY`.
 - Commits pequenos, mensagem "Passo N: ..." quando fizer parte da
   construção guiada, corpo explicando o porquê.
 - Ao concluir um passo relevante, atualizar `docs/PASSO-A-PASSO.md` e o
