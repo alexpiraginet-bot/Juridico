@@ -6,6 +6,7 @@ import { Selo } from "@/components/Selo";
 import { concluirPrazo, excluirPrazo, validarPrazo } from "@/lib/acoes/prazos";
 import { bd } from "@/lib/bd";
 import { formatarData } from "@/lib/formatar";
+import { CalendarioPrazos, mesDeHoje } from "@/components/CalendarioPrazos";
 
 export const metadata: Metadata = { title: "Prazos" };
 export const dynamic = "force-dynamic";
@@ -13,9 +14,11 @@ export const dynamic = "force-dynamic";
 export default async function PaginaPrazos({
   searchParams,
 }: {
-  searchParams: Promise<{ erro?: string }>;
+  searchParams: Promise<{ erro?: string; vista?: string; mes?: string }>;
 }) {
-  const { erro } = await searchParams;
+  const { erro, vista, mes } = await searchParams;
+  const ehCalendario = vista === "calendario";
+  const mesAtual = /^\d{4}-\d{2}$/.test(mes ?? "") ? (mes as string) : mesDeHoje();
   const prazos = await bd.prazo.findMany({
     include: { processo: { select: { numero: true, titulo: true } } },
     orderBy: { vencimento: "asc" },
@@ -44,6 +47,21 @@ export default async function PaginaPrazos({
         </Link>
       </div>
 
+      <div className="mb-4 inline-flex rounded-lg border border-borda bg-superficie p-0.5 text-[12.5px] font-semibold">
+        <Link
+          href="/prazos"
+          className={`rounded-md px-3 py-1.5 ${!ehCalendario ? "bg-navy text-white" : "text-suave hover:text-tinta"}`}
+        >
+          Lista
+        </Link>
+        <Link
+          href={`/prazos?vista=calendario&mes=${mesAtual}`}
+          className={`rounded-md px-3 py-1.5 ${ehCalendario ? "bg-navy text-white" : "text-suave hover:text-tinta"}`}
+        >
+          Calendário
+        </Link>
+      </div>
+
       {erro && (
         <p className="mb-3.5 rounded-lg border border-[#E5C4C0] bg-selo-vermelho px-3 py-2 text-[12.5px] font-semibold text-vermelho">
           ⚠️ {erro}
@@ -57,6 +75,10 @@ export default async function PaginaPrazos({
         </div>
       )}
 
+      {ehCalendario ? (
+        <CalendarioPrazos prazos={prazos} mes={mesAtual} />
+      ) : (
+        <>
       {pendentes.length === 0 ? (
         <div className="rounded-xl border border-dashed border-borda bg-superficie p-10 text-center">
           <p className="text-[15px] font-semibold text-navy">Nenhum prazo em aberto</p>
@@ -133,6 +155,8 @@ export default async function PaginaPrazos({
             ))}
           </ul>
         </section>
+      )}
+        </>
       )}
     </div>
   );
