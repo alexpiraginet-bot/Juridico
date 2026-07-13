@@ -17,15 +17,30 @@ import { SeloIA } from "@/components/SeloIA";
 import { useAviso } from "@/components/useAviso";
 import { conversaNaoTriada } from "@/lib/dados";
 import type { ConversaPainel, Mensagem } from "@/lib/tipos";
-import { analisarAtendimento, responderAtendimento } from "@/lib/acoes/atendimentos";
+import {
+  analisarAtendimento,
+  responderAtendimento,
+  enviarModeloParaConversa,
+} from "@/lib/acoes/atendimentos";
 import type { AnaliseDoAtendimento } from "@/lib/ia";
+
+export type ModeloPainel = {
+  id: string;
+  nome: string;
+  idioma: string;
+  categoria: string | null;
+  corpo: string;
+  numParams: number;
+};
 
 export function PainelAtendimentos({
   conversas,
   demo,
+  modelos,
 }: {
   conversas: ConversaPainel[];
   demo: boolean;
+  modelos: ModeloPainel[];
 }) {
   const { avisar, elemento } = useAviso();
   const [indiceAtivo, setIndiceAtivo] = useState(0);
@@ -36,6 +51,10 @@ export function PainelAtendimentos({
   const [erroIA, setErroIA] = useState<string | null>(null);
   const [gerando, iniciarGeracao] = useTransition();
   const [enviando, iniciarEnvio] = useTransition();
+  // Envio de modelo (fora da janela de 24h).
+  const [modeloSel, setModeloSel] = useState("");
+  const [paramsModelo, setParamsModelo] = useState<string[]>([]);
+  const [enviandoModelo, iniciarModelo] = useTransition();
   const fimDoChat = useRef<HTMLDivElement>(null);
 
   const conversa = conversas[indiceAtivo];
@@ -80,6 +99,28 @@ export function PainelAtendimentos({
           { de: "escritorio", texto, hora: r.hora, enviadaAgora: true },
         ]);
         setRascunho("");
+      } else {
+        avisar(`⚠️ ${r.erro}`);
+      }
+    });
+  }
+
+  function enviarModelo() {
+    const modelo = modelos.find((m) => m.id === modeloSel);
+    if (!modelo || enviandoModelo) return;
+    const ps = Array.from({ length: modelo.numParams }, (_, i) => (paramsModelo[i] ?? "").trim());
+    if (ps.some((p) => !p)) {
+      avisar("⚠️ Preencha todos os campos do modelo.");
+      return;
+    }
+    iniciarModelo(async () => {
+      const r = await enviarModeloParaConversa(conversa.id, modelo.id, ps);
+      if (r.ok) {
+        const texto = modelo.corpo.replace(/\{\{\s*(\d+)\s*\}\}/g, (_todo, n) => ps[Number(n) - 1] ?? `{{${n}}}`);
+        setMensagens((atuais) => [...atuais, { de: "escritorio", texto, hora: r.hora, enviadaAgora: true }]);
+        setModeloSel("");
+        setParamsModelo([]);
+        avisar("📄 Modelo enviado pelo WhatsApp.");
       } else {
         avisar(`⚠️ ${r.erro}`);
       }
@@ -196,9 +237,61 @@ export function PainelAtendimentos({
         </div>
 
         {!demo && !janelaAberta && (
-          <div className="border-t border-[#E7D4A8] bg-selo-ambar px-3 py-1.5 text-[11px] text-ambar">
-            ⏳ Janela de 24h fechada — fora dela o WhatsApp só aceita <b>modelos aprovados</b>. Uma
-            mensagem livre pode ser recusada.
+          <div className="border-t border-[#E7D4A8] bg-selo-ambar px-3 py-2 text-[11px] text-ambar">
+            <p>
+              ⏳ Janela de 24h fechada — fora dela o WhatsApp só aceita <b>modelos aprovados</b>. Uma
+              mensagem livre pode ser recusada.
+            </p>
+            {modelos.length === 0 ? (
+              <p className="mt-1">
+                Cadastre modelos em <b>Credenciais → Modelos de mensagem</b> para poder enviar aqui.
+              </p>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-end gap-2">
+                <select
+                  value={modeloSel}
+                  onChange={(e) => {
+                    setModeloSel(e.target.value);
+                    setParamsModelo([]);
+                  }}
+                  className="rounded-lg border border-borda bg-superficie px-2 py-1.5 text-[12px] text-tinta"
+                >
+                  <option value="">Escolha um modelo…</option>
+                  {modelos.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome}
+                    </option>
+                  ))}
+                </select>
+                {(() => {
+                  const m = modelos.find((x) => x.id === modeloSel);
+                  if (!m || m.numParams === 0) return null;
+                  return Array.from({ length: m.numParams }, (_, i) => (
+                    <input
+                      key={i}
+                      value={paramsModelo[i] ?? ""}
+                      onChange={(e) =>
+                        setParamsModelo((atuais) => {
+                          const novos = [...atuais];
+                          novos[i] = e.target.value;
+                          return novos;
+                        })
+                      }
+                      placeholder={`{{${i + 1}}}`}
+                      className="w-28 rounded-lg border border-borda bg-superficie px-2 py-1.5 text-[12px] text-tinta"
+                    />
+                  ));
+                })()}
+                <button
+                  type="button"
+                  onClick={enviarModelo}
+                  disabled={!modeloSel || enviandoModelo}
+                  className="rounded-lg bg-verde px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-verde-escuro disabled:opacity-60"
+                >
+                  {enviandoModelo ? "…" : "Enviar modelo"}
+                </button>
+              </div>
+            )}
           </div>
         )}
         <div className="flex gap-2 border-t border-borda bg-superficie p-2.5">

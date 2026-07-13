@@ -18,7 +18,7 @@ import {
   type AnaliseDoAtendimento,
   type MensagemParaIa,
 } from "@/lib/ia";
-import { enviarTextoWhatsapp } from "@/lib/whatsapp/enviar";
+import { enviarTextoWhatsapp, enviarTemplateWhatsapp, preencherModelo } from "@/lib/whatsapp/enviar";
 
 function hhmm(data: Date): string {
   return data.toLocaleTimeString("pt-BR", {
@@ -117,6 +117,77 @@ export async function responderAtendimento(
     teamId: usuario.teamId,
     acao: "whatsapp.resposta",
     detalhe: `respondeu o contato ${conversa.telefone} pelo WhatsApp`,
+  });
+
+  return { ok: true, hora: hhmm(agora) };
+}
+
+/*
+ * Enviar um MODELO (template) aprovado — o único jeito de falar FORA da janela
+ * de 24h. Envia pela Graph API e grava no histórico o texto já preenchido (os
+ * {{1}}, {{2}}… trocados pelos parâmetros), para o histórico ficar legível.
+ */
+export async function enviarModeloParaConversa(
+  conversaId: string,
+  modeloId: string,
+  parametros: string[],
+): Promise<ResultadoResposta> {
+  const usuario = await exigirUsuario();
+  if (!usuario.teamId) return { ok: false, erro: "Seu usuário não está em um escritório." };
+
+  const conversa = await bd.conversaWhatsapp.findFirst({
+    where: { id: conversaId, teamId: usuario.teamId },
+    select: { id: true, telefone: true },
+  });
+  if (!conversa) return { ok: false, erro: "Conversa não encontrada neste escritório." };
+
+  const modelo = await bd.modeloWhatsapp.findFirst({
+    where: { id: modeloId, teamId: usuario.teamId },
+  });
+  if (!modelo) return { ok: false, erro: "Modelo não encontrado neste escritório." };
+
+  const params = (parametros ?? []).map((p) => p.trim());
+  if (params.slice(0, modelo.numParams).some((p) => !p)) {
+    return { ok: false, erro: "Preencha todos os campos do modelo antes de enviar." };
+  }
+
+  const envio = await enviarTemplateWhatsapp(
+    conversa.telefone,
+    modelo.nome,
+    modelo.idioma,
+    params.slice(0, modelo.numParams),
+  );
+  if (!envio.ok) {
+    return {
+      ok: false,
+      erro: envio.demo
+        ? "WhatsApp não configurado — o modelo não foi enviado (modo demonstração)."
+        : envio.erro,
+    };
+  }
+
+  const agora = new Date();
+  const texto = preencherModelo(modelo.corpo, params);
+  try {
+    await bd.mensagemWhatsapp.create({
+      data: {
+        conversaId: conversa.id,
+        direcao: "ENVIADA",
+        texto,
+        waMessageId: envio.waMessageId,
+        enviadoEm: agora,
+      },
+    });
+  } catch {
+    return { ok: false, erro: "Modelo enviado, mas não consegui gravá-lo no histórico." };
+  }
+
+  await registrarAuditoria({
+    usuarioId: usuario.id,
+    usuarioNome: usuario.nome,
+    teamId: usuario.teamId,
+    acao: "whatsapp.modelo.enviado",
+    detalhe: `enviou o modelo "${modelo.nome}" ao contato ${conversa.telefone}`,
   });
 
   return { ok: true, hora: hhmm(agora) };
