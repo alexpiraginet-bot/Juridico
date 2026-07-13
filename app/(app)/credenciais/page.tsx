@@ -5,7 +5,7 @@ import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
 import { exigirDono } from "@/lib/auth";
 import { alternarCredencial, criarCredencial, excluirCredencial } from "@/lib/acoes/credenciais";
-import { salvarNumeroWhatsapp } from "@/lib/acoes/whatsapp";
+import { salvarNumeroWhatsapp, salvarModeloWhatsapp, excluirModeloWhatsapp } from "@/lib/acoes/whatsapp";
 
 export const metadata: Metadata = { title: "Credenciais jurídicas" };
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export default async function PaginaCredenciais({
   const dono = await exigirDono();
   const { erro } = await searchParams;
 
-  const [usuarios, credenciais, time] = await Promise.all([
+  const [usuarios, credenciais, time, modelos] = await Promise.all([
     bd.usuario.findMany({
       where: { teamId: dono.teamId },
       orderBy: { nome: "asc" },
@@ -35,6 +35,10 @@ export default async function PaginaCredenciais({
     bd.team.findUnique({
       where: { id: dono.teamId },
       select: { whatsappPhoneNumberId: true },
+    }),
+    bd.modeloWhatsapp.findMany({
+      where: { teamId: dono.teamId },
+      orderBy: { criadoEm: "asc" },
     }),
   ]);
 
@@ -92,6 +96,93 @@ export default async function PaginaCredenciais({
             Salvar
           </button>
         </form>
+      </div>
+
+      {/* Modelos (templates) de mensagem do WhatsApp — para falar fora da janela de 24h */}
+      <div className="mb-4 rounded-xl border border-borda bg-superficie p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-bold text-navy">📄 Modelos de mensagem (WhatsApp)</span>
+          <Selo tom={modelos.length ? "verde" : "cinza"}>
+            {modelos.length} cadastrado{modelos.length === 1 ? "" : "s"}
+          </Selo>
+        </div>
+        <p className="mt-1 text-[11.5px] text-suave">
+          Fora da <b>janela de 24h</b>, a Meta só permite enviar mensagens a partir de um{" "}
+          <b>modelo aprovado</b>. Cadastre aqui os que você já aprovou na Meta — o <b>nome exato</b>,
+          o idioma e o corpo. Use <code className="rounded bg-plano px-1">{"{{1}}"}</code>,{" "}
+          <code className="rounded bg-plano px-1">{"{{2}}"}</code>… nos lugares que mudam.
+        </p>
+
+        <details className="mt-3 rounded-lg border border-borda">
+          <summary className="cursor-pointer list-none rounded-lg px-3 py-2 text-[12.5px] font-semibold text-verde-escuro">
+            ＋ Novo modelo
+          </summary>
+          <form action={salvarModeloWhatsapp} className="grid gap-3 border-t border-borda p-3.5 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-suave">Nome do modelo (igual ao da Meta)</span>
+              <input name="nome" required className={entrada} placeholder="ex.: aviso_de_prazo" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-suave">Idioma</span>
+              <input name="idioma" defaultValue="pt_BR" className={entrada} placeholder="pt_BR" />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-semibold text-suave">Categoria</span>
+              <select name="categoria" defaultValue="UTILITY" className={entrada}>
+                <option value="UTILITY">Utilidade (avisos, atualizações)</option>
+                <option value="MARKETING">Marketing</option>
+                <option value="AUTHENTICATION">Autenticação (código)</option>
+              </select>
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-semibold text-suave">Corpo do modelo</span>
+              <textarea
+                name="corpo"
+                required
+                rows={3}
+                className={entrada}
+                placeholder="Olá {{1}}, aqui é do escritório. Seu prazo de {{2}} vence em {{3}}. Qualquer dúvida, estamos à disposição."
+              />
+            </label>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                className="rounded-lg bg-verde px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-verde-escuro"
+              >
+                Cadastrar modelo
+              </button>
+            </div>
+          </form>
+        </details>
+
+        {modelos.length > 0 && (
+          <ul className="mt-3 space-y-2">
+            {modelos.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-lg border border-borda bg-plano px-3 py-2.5"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[12.5px] font-bold text-navy">{m.nome}</span>
+                    <Selo tom="cinza">{m.idioma}</Selo>
+                    {m.categoria && <Selo tom="navy">{m.categoria}</Selo>}
+                    {m.numParams > 0 && (
+                      <span className="text-[11px] text-suave">
+                        {m.numParams} parâmetro{m.numParams === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-[11.5px] text-tinta">{m.corpo}</p>
+                </div>
+                <BotaoExcluir
+                  acao={excluirModeloWhatsapp.bind(null, m.id)}
+                  confirmacao={`Excluir o modelo "${m.nome}"?`}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Nova credencial */}

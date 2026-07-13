@@ -154,6 +154,7 @@ model Team {
   usuarios   Usuario[]
   auditorias RegistroAuditoria[]
   conversas  ConversaWhatsapp[]
+  modelosWhatsapp ModeloWhatsapp[]
 
   @@map("teams")
 }
@@ -276,4 +277,25 @@ model MensagemWhatsapp {
 
   @@index([conversaId])
   @@map("mensagens_whatsapp")
+}
+
+// Fase 4 — modelos (templates) aprovados do WhatsApp. Fora da janela de 24h,
+// a Meta só permite enviar mensagens a partir de um MODELO aprovado por ela.
+// Aqui o escritório registra os modelos que já aprovou na Meta (nome exato +
+// idioma + corpo de referência) para poder dispará-los pela tela. Cada modelo
+// é de um Team; (teamId, nome, idioma) é único para não repetir o mesmo.
+model ModeloWhatsapp {
+  id        String   @id @default(cuid())
+  teamId    String   @map("team_id")
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  nome      String // nome EXATO aprovado na Meta (ex.: "aviso_de_prazo")
+  idioma    String   @default("pt_BR") // código de idioma da Meta
+  categoria String? // UTILITY | MARKETING | AUTHENTICATION
+  corpo     String // texto de referência do corpo (use {{1}}, {{2}}… nos lugares dos parâmetros)
+  numParams Int      @default(0) @map("num_params")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  @@unique([teamId, nome, idioma])
+  @@index([teamId])
+  @@map("modelos_whatsapp")
 }

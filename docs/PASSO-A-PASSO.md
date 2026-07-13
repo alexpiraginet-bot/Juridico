@@ -1184,10 +1184,14 @@ responder**.
 
 ## O que vem a seguir
 
-O ciclo do WhatsApp está fechado — **recebe, roteia, mostra e responde**. O que
-resta da **Fase 4** é uma refinaria: a **gestão de modelos (templates)**
-aprovados, para conversar fora da janela de 24h (depende dos templates que cada
-escritório aprova na Meta). As **Fases 3 e 5** já estão completas. O alicerce —
+O ciclo do WhatsApp está fechado — **recebe, roteia, mostra e responde** — e a
+**Fase 4 está completa**: a **gestão de modelos (templates)** aprovados também
+entrou. O dono cadastra em `/credenciais` os modelos que aprovou na Meta e,
+**fora da janela de 24h**, o atendente dispara um deles pelo próprio chat (com
+os parâmetros `{{1}}…` preenchidos na hora). No caminho, a **captura do DJEN**
+ganhou uma **janela de datas** na consulta (fuso de Brasília), fechando um furo
+em que publicações disponibilizadas tarde no dia escapavam para sempre. As
+**Fases 3 e 5** já estavam completas. O alicerce —
 banco na nuvem, IA conectada em todas as frentes, consulta pública ao
 Judiciário, captura oficial pela OAB, acesso multi-inquilino auditado e o
 WhatsApp de ponta a ponta — já está de pé.

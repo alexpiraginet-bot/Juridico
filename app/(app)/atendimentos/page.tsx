@@ -70,6 +70,27 @@ export default async function PaginaAtendimentos() {
     reais = [];
   }
 
+  // Modelos (templates) aprovados do escritório — para enviar fora da janela de 24h.
+  let modelos: {
+    id: string;
+    nome: string;
+    idioma: string;
+    categoria: string | null;
+    corpo: string;
+    numParams: number;
+  }[] = [];
+  try {
+    if (usuario.teamId) {
+      modelos = await bd.modeloWhatsapp.findMany({
+        where: { teamId: usuario.teamId },
+        orderBy: { criadoEm: "asc" },
+        select: { id: true, nome: true, idioma: true, categoria: true, corpo: true, numParams: true },
+      });
+    }
+  } catch {
+    modelos = [];
+  }
+
   const demo = reais.length === 0;
   const conversas: ConversaPainel[] = demo
     ? conversasDemo.map((c) => ({
@@ -108,7 +129,7 @@ export default async function PaginaAtendimentos() {
         </div>
       )}
 
-      <PainelAtendimentos conversas={conversas} demo={demo} />
+      <PainelAtendimentos conversas={conversas} demo={demo} modelos={modelos} />
     </div>
   );
 }

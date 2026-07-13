@@ -91,7 +91,7 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    `CompartilhamentoIntimacao`); **log de auditoria** (`RegistroAuditoria`
    append-only, `lib/auditoria.ts`; tela `/auditoria` escopada por papel —
    dono vê o escritório, super-admin vê a plataforma).
-6. 🟡 Fase 4 (em andamento) — integrações de comunicação. Já feito: busca
+6. ✅ Fase 4 — integrações de comunicação. Já feito: busca
    de processos pela OAB no DJEN/CNJ (tela `/djen`, roda em `gru1` por
    causa do geobloqueio), importação para o banco (tabela `Intimacao`,
    dedup), **captura automática diária** (cron da Vercel às 08h BRT /
@@ -109,7 +109,14 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
    (`responderAtendimento`: envia pela Graph API, grava a resposta como
    `ENVIADA` e audita), com aviso quando a **janela de 24h** está fechada.
    Guia de configuração da Meta em `docs/whatsapp-configuracao.md`. O ciclo
-   receber → rotear → mostrar → responder está fechado; falta só a **gestão de
-   modelos (templates)** aprovados para mensagens fora da janela de 24h.
+   receber → rotear → mostrar → responder está fechado. E a **gestão de modelos
+   (templates)** aprovados (tabela `ModeloWhatsapp`): o dono cadastra em
+   `/credenciais` os modelos que aprovou na Meta e, **fora da janela de 24h**,
+   o atendente dispara um modelo pelo próprio chat (`enviarModeloParaConversa`,
+   com os parâmetros `{{1}}…` preenchidos). A **captura do DJEN** passou a
+   consultar sempre uma **janela recente de datas** (fuso de Brasília,
+   `DJEN_DIAS_JANELA`, padrão 30 dias) — antes ia sem faixa e uma publicação
+   disponibilizada tarde no dia escapava; agora, com a sobreposição diária e a
+   dedup, nada some pela borda do dia.
 
 Antes de iniciar uma fase nova, alinhar o escopo com o dono do projeto.
