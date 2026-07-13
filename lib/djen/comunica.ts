@@ -71,19 +71,62 @@ interface OpcoesBusca {
   pagina?: number;
 }
 
+/*
+ * Data de hoje — ou N dias atrás (N negativo = no futuro) — no fuso de
+ * Brasília, no formato AAAA-MM-DD que o DJEN espera. Precisa ser no fuso
+ * certo mesmo o servidor rodando em UTC (Vercel): perto da meia-noite, a
+ * data "escorregaria" um dia e a janela ficaria errada.
+ */
+export function dataBrasilia(diasAtras = 0): string {
+  const base = new Date(Date.now() - diasAtras * 86_400_000);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(base);
+}
+
+// Tamanho (em dias) da janela padrão de busca. Configurável por
+// DJEN_DIAS_JANELA (1–90); padrão 30. Generoso de propósito: como a
+// varredura roda todo dia e o banco deduplica, cada publicação é
+// reconferida por vários dias — nada some pela borda do dia.
+function diasJanelaPadrao(): number {
+  const n = Number(process.env.DJEN_DIAS_JANELA);
+  if (!Number.isFinite(n)) return 30;
+  return Math.min(Math.max(Math.trunc(n), 1), 90);
+}
+
+/*
+ * A janela padrão (início/fim, em AAAA-MM-DD, fuso de Brasília) que a
+ * busca usa quando quem chama não pede uma faixa. O fim é AMANHÃ, de
+ * propósito: dá folga para a borda de fuso e para publicações
+ * disponibilizadas com data um pouco à frente.
+ */
+export function janelaPadrao(): { inicio: string; fim: string } {
+  return { inicio: dataBrasilia(diasJanelaPadrao()), fim: dataBrasilia(-1) };
+}
+
 export async function buscarNoDjen(
   numeroOab: string,
   ufOab: string,
   opcoes: OpcoesBusca = {},
 ): Promise<ResultadoDjen> {
+  // SEMPRE mandamos uma faixa de datas. Sem ela dependíamos do padrão do
+  // DJEN, que pode devolver só uma janela estreita (ex.: o próprio dia) —
+  // e aí uma publicação disponibilizada DEPOIS da varredura das 08h
+  // escorregava e nunca mais era buscada. Consultando os últimos ~30 dias
+  // (com dedup no banco), toda publicação recente é reconferida por vários
+  // dias: nada some pela borda do dia.
+  const janela = janelaPadrao();
   const params = new URLSearchParams({
     numeroOab: numeroOab.replace(/\D/g, ""),
     ufOab: ufOab.toUpperCase(),
     pagina: String(opcoes.pagina ?? 1),
     itensPorPagina: String(opcoes.itensPorPagina ?? 30),
+    dataDisponibilizacaoInicio: opcoes.dataInicio ?? janela.inicio,
+    dataDisponibilizacaoFim: opcoes.dataFim ?? janela.fim,
   });
-  if (opcoes.dataInicio) params.set("dataDisponibilizacaoInicio", opcoes.dataInicio);
-  if (opcoes.dataFim) params.set("dataDisponibilizacaoFim", opcoes.dataFim);
 
   let resposta: Response;
   try {

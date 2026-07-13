@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { bd } from "@/lib/bd";
 import { importarIntimacoes } from "@/lib/djen/importar";
+import { janelaPadrao } from "@/lib/djen/comunica";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "gru1";
@@ -64,5 +65,13 @@ export async function GET(request: Request) {
   }
 
   const novas = resultados.reduce((s, r) => s + ("novas" in r ? r.novas : 0), 0);
-  return NextResponse.json({ ok: true, credenciaisVarridas: alvos.length, novas, resultados });
+  // Reporta a janela varrida (fuso de Brasília) — se um dia faltar uma
+  // publicação, dá para conferir na hora qual período foi consultado.
+  return NextResponse.json({
+    ok: true,
+    janela: janelaPadrao(),
+    credenciaisVarridas: alvos.length,
+    novas,
+    resultados,
+  });
 }
