@@ -3,7 +3,12 @@
  * O banco guarda "TRABALHISTA"; a tela mostra "Trabalhista".
  */
 
-import type { AreaProcesso, FaseProcesso } from "@/lib/generated/prisma/enums";
+import type {
+  AreaProcesso,
+  FaseProcesso,
+  ColunaTarefa,
+  PrioridadeTarefa,
+} from "@/lib/generated/prisma/enums";
 import type { TomSelo } from "@/lib/tipos";
 
 export const AREAS: Record<AreaProcesso, string> = {
@@ -24,6 +29,22 @@ export const FASES: Record<FaseProcesso, { rotulo: string; tom: TomSelo }> = {
   EXECUCAO: { rotulo: "Execução", tom: "navy" },
   ARQUIVADO: { rotulo: "Arquivado", tom: "cinza" },
 };
+
+export const COLUNAS_TAREFA: Record<ColunaTarefa, string> = {
+  A_FAZER: "A fazer",
+  EM_ANDAMENTO: "Em andamento",
+  EM_REVISAO: "Em revisão",
+  CONCLUIDA: "Concluído",
+};
+
+export const PRIORIDADES_TAREFA: Record<PrioridadeTarefa, { rotulo: string; tom: TomSelo }> = {
+  ALTA: { rotulo: "Alta", tom: "vermelho" },
+  MEDIA: { rotulo: "Média", tom: "ambar" },
+  BAIXA: { rotulo: "Baixa", tom: "cinza" },
+};
+
+// Ordem das colunas do kanban, da esquerda para a direita.
+export const ORDEM_COLUNAS: ColunaTarefa[] = ["A_FAZER", "EM_ANDAMENTO", "EM_REVISAO", "CONCLUIDA"];
 
 export function rotuloDaArea(area: AreaProcesso): string {
   return AREAS[area];

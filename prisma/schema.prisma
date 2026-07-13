@@ -57,6 +57,7 @@ model Processo {
   clienteId    String       @map("cliente_id")
   cliente      Cliente      @relation(fields: [clienteId], references: [id])
   prazos       Prazo[]
+  tarefas      Tarefa[]
   criadoEm     DateTime     @default(now()) @map("criado_em")
 
   @@map("processos")
@@ -155,6 +156,7 @@ model Team {
   auditorias RegistroAuditoria[]
   conversas  ConversaWhatsapp[]
   modelosWhatsapp ModeloWhatsapp[]
+  tarefas    Tarefa[]
 
   @@map("teams")
 }
@@ -179,6 +181,7 @@ model Usuario {
   intimacoesRecebidas CompartilhamentoIntimacao[]
   auditorias          RegistroAuditoria[]
   conversas           ConversaWhatsapp[]
+  tarefas             Tarefa[]
 
   @@map("usuarios")
 }
@@ -298,4 +301,41 @@ model ModeloWhatsapp {
   @@unique([teamId, nome, idioma])
   @@index([teamId])
   @@map("modelos_whatsapp")
+}
+
+// Situação da tarefa no kanban (as 4 colunas da tela de Tarefas).
+enum ColunaTarefa {
+  A_FAZER
+  EM_ANDAMENTO
+  EM_REVISAO
+  CONCLUIDA
+}
+
+enum PrioridadeTarefa {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+// Tarefa do escritório — o kanban de verdade (antes era demonstração).
+// Isolada por Team; pode estar ligada a um Processo e a um responsável
+// (usuário do escritório). `ordem` guarda a posição dentro da coluna.
+model Tarefa {
+  id            String            @id @default(cuid())
+  titulo        String
+  detalhe       String?
+  coluna        ColunaTarefa      @default(A_FAZER)
+  prioridade    PrioridadeTarefa?
+  ordem         Int               @default(0)
+  teamId        String            @map("team_id")
+  team          Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  responsavelId String?           @map("responsavel_id")
+  responsavel   Usuario?          @relation(fields: [responsavelId], references: [id], onDelete: SetNull)
+  processoId    String?           @map("processo_id")
+  processo      Processo?         @relation(fields: [processoId], references: [id], onDelete: SetNull)
+  criadoEm      DateTime          @default(now()) @map("criado_em")
+  atualizadoEm  DateTime          @updatedAt @map("atualizado_em")
+
+  @@index([teamId, coluna, ordem])
+  @@map("tarefas")
 }
