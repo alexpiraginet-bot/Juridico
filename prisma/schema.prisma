@@ -58,6 +58,7 @@ model Processo {
   cliente      Cliente      @relation(fields: [clienteId], references: [id])
   prazos       Prazo[]
   tarefas      Tarefa[]
+  minutas      Minuta[]
   criadoEm     DateTime     @default(now()) @map("criado_em")
 
   @@map("processos")
@@ -157,6 +158,7 @@ model Team {
   conversas  ConversaWhatsapp[]
   modelosWhatsapp ModeloWhatsapp[]
   tarefas    Tarefa[]
+  minutas    Minuta[]
 
   @@map("teams")
 }
@@ -338,4 +340,34 @@ model Tarefa {
 
   @@index([teamId, coluna, ordem])
   @@map("tarefas")
+}
+
+// Situação de uma minuta no ciclo do produto: a IA redige, o advogado edita,
+// o advogado aprova. Nada é protocolado pelo sistema.
+enum StatusMinuta {
+  RASCUNHO_IA
+  EDITADA
+  APROVADA
+}
+
+// Minuta (peça) assistida por IA — agora PERSISTIDA (antes o texto sumia ao
+// sair da tela). Guarda o rascunho original da IA (`teorIa`) e o texto atual
+// (`teor`, que o advogado edita), mais o status. Isolada por Team; ligada a um
+// Processo (opcional). O histórico de versões da tela deriva do status.
+model Minuta {
+  id           String       @id @default(cuid())
+  teamId       String       @map("team_id")
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  processoId   String?      @map("processo_id")
+  processo     Processo?    @relation(fields: [processoId], references: [id], onDelete: SetNull)
+  titulo       String
+  teor         String       // texto atual (o advogado edita)
+  teorIa       String       @map("teor_ia") // o rascunho original da IA
+  status       StatusMinuta @default(RASCUNHO_IA)
+  autorNome    String?      @map("autor_nome") // quem gerou/editou por último
+  criadoEm     DateTime     @default(now()) @map("criado_em")
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em")
+
+  @@index([teamId, atualizadoEm])
+  @@map("minutas")
 }
