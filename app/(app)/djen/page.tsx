@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
 import { formatarData } from "@/lib/formatar";
-import { buscarNoDjen } from "@/lib/djen/comunica";
+import { buscarTudoNoDjen } from "@/lib/djen/comunica";
 import { acaoImportarIntimacoes, acaoAbrirIntimacao } from "@/lib/acoes/djen";
 import { bd } from "@/lib/bd";
 import { exigirUsuario } from "@/lib/auth";
@@ -52,7 +52,10 @@ export default async function PaginaDjen({
   const nome = process.env.ADVOGADO_NOME;
 
   const deveBuscar = buscar === "1" && Boolean(oabAtual);
-  const resultado = deveBuscar ? await buscarNoDjen(oabAtual, ufAtual) : null;
+  // Busca paginada (não só a 1ª página) e com janela recente — para a tela
+  // mostrar tudo o que a importação vê, sem uma publicação escapar por estar
+  // além dos primeiros 30 resultados.
+  const resultado = deveBuscar ? await buscarTudoNoDjen(oabAtual, ufAtual, { maxPaginas: 15 }) : null;
   const jaSalvas = await contarSalvas(usuario.id);
 
   return (
