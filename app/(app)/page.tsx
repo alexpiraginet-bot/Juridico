@@ -25,33 +25,49 @@ export default async function PaginaDashboard() {
   const em7 = new Date(hoje.getTime() + 7 * 86_400_000);
   const seteDiasAtras = new Date(agora.getTime() - 7 * 86_400_000);
 
-  // Globais (tabelas da Fase 2, sem inquilino).
-  const [processosAtivos, prazosAValidar, prazosAVencer, prazosProximos, aValidarLista] =
-    await Promise.all([
-      bd.processo.count().catch(() => 0),
-      bd.prazo.count({ where: { validado: false, concluido: false } }).catch(() => 0),
-      bd.prazo
-        .count({ where: { concluido: false, vencimento: { gte: hoje, lte: em7 } } })
-        .catch(() => 0),
-      bd.prazo
-        .findMany({
-          where: { concluido: false },
-          orderBy: { vencimento: "asc" },
-          take: 6,
-          include: { processo: { select: { numero: true, titulo: true } } },
-        })
-        .catch(() => []),
-      bd.prazo
-        .findMany({
-          where: { validado: false, concluido: false },
-          orderBy: { vencimento: "asc" },
-          take: 4,
-          include: { processo: { select: { numero: true } } },
-        })
-        .catch(() => []),
-    ]);
+  // Dispara as duas ondas de consultas JUNTAS (globais da Fase 2 + as do
+  // escritório) e só então espera — antes o segundo Promise.all só começava
+  // depois do primeiro terminar; agora ambas correm em paralelo, cortando uma
+  // ida ao banco na home (todo login cai aqui).
+  const globaisP = Promise.all([
+    bd.processo.count().catch(() => 0),
+    bd.prazo.count({ where: { validado: false, concluido: false } }).catch(() => 0),
+    bd.prazo
+      .count({ where: { concluido: false, vencimento: { gte: hoje, lte: em7 } } })
+      .catch(() => 0),
+    bd.prazo
+      .findMany({
+        where: { concluido: false },
+        orderBy: { vencimento: "asc" },
+        take: 6,
+        include: { processo: { select: { numero: true, titulo: true } } },
+      })
+      .catch(() => []),
+    bd.prazo
+      .findMany({
+        where: { validado: false, concluido: false },
+        orderBy: { vencimento: "asc" },
+        take: 4,
+        include: { processo: { select: { numero: true } } },
+      })
+      .catch(() => []),
+  ]);
 
-  // Do escritório (isolados por Team).
+  // Do escritório (isolados por Team) — começa a rodar já, junto das globais.
+  const doTimeP = teamId
+    ? Promise.all([
+        bd.tarefa.groupBy({ by: ["coluna"], where: { teamId }, _count: true }).catch(() => []),
+        bd.intimacao
+          .count({ where: { usuario: { teamId }, criadoEm: { gte: seteDiasAtras } } })
+          .catch(() => 0),
+        bd.conversaWhatsapp.count({ where: { teamId } }).catch(() => 0),
+        bd.minuta.groupBy({ by: ["status"], where: { teamId }, _count: true }).catch(() => []),
+      ])
+    : null;
+
+  const [processosAtivos, prazosAValidar, prazosAVencer, prazosProximos, aValidarLista] =
+    await globaisP;
+
   const tarefasPorColuna: Record<ColunaTarefa, number> = {
     A_FAZER: 0,
     EM_ANDAMENTO: 0,
@@ -61,13 +77,8 @@ export default async function PaginaDashboard() {
   const minutasPorStatus: Record<string, number> = {};
   let intimacoesNovas = 0;
   let conversas = 0;
-  if (teamId) {
-    const [grpTarefas, intims, convs, grpMinutas] = await Promise.all([
-      bd.tarefa.groupBy({ by: ["coluna"], where: { teamId }, _count: true }).catch(() => []),
-      bd.intimacao.count({ where: { usuario: { teamId }, criadoEm: { gte: seteDiasAtras } } }).catch(() => 0),
-      bd.conversaWhatsapp.count({ where: { teamId } }).catch(() => 0),
-      bd.minuta.groupBy({ by: ["status"], where: { teamId }, _count: true }).catch(() => []),
-    ]);
+  if (doTimeP) {
+    const [grpTarefas, intims, convs, grpMinutas] = await doTimeP;
     for (const g of grpTarefas) tarefasPorColuna[g.coluna] = g._count;
     for (const g of grpMinutas) minutasPorStatus[g.status] = g._count;
     intimacoesNovas = intims;
