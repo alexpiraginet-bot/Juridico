@@ -1182,6 +1182,49 @@ responder**.
 
 ---
 
+## Identidade LEX TECHNOLOGY e um pente-fino de performance (feel iOS 26)
+
+Com o motor da operação pronto, foi a vez da **cara** do produto e de uns
+ajustes de desempenho. Adotamos a identidade da **LEX TECHNOLOGY** (o "X" em
+degradê azul→violeta, tinta navy profunda, superfícies claras e frias,
+squircles e sombras suaves — o feel do iOS 26) e aplicamos as melhorias que
+duas auditorias (uma de UI/UX, outra de performance) apontaram.
+
+**Detalhes que valem estudar:**
+
+- **Um token, todas as telas.** Trocar o valor de `--color-verde` para o azul
+  da marca fez **todos** os botões, o item ativo da barra, os links e os focos
+  virarem azul de uma vez — sem tocar em nenhuma tela. As telas usam a classe
+  derivada do token (`bg-verde`), não o hex solto; o valor mora num lugar só.
+  Nomear a cor pelo **papel** ("ação") e centralizá-la é o que torna um
+  rebranding barato.
+- **Um token para cada _significado_, não para cada _cor_.** Como "verde" virou
+  "ação/azul", o verde de verdade (validado/aprovado/concluído) teria virado
+  azul junto — e status não é ação. Por isso o sucesso ganhou tokens próprios
+  (`--color-sucesso*`) e o `Selo`, o KPI "bom" e o calendário passaram a
+  usá-los. Regra da casa: **cor nunca carrega significado sozinha**, e cada
+  significado merece o seu token.
+- **Tirar a API lenta do caminho do primeiro paint.** A tela do processo
+  esperava o DataJud (até 20s) **antes** de desenhar qualquer coisa. Movendo a
+  consulta para um componente `async` sob `<Suspense>`, o cabeçalho (que vem de
+  uma query rápida ao banco) aparece na hora e os andamentos entram por
+  _streaming_ quando ficam prontos — com um **esqueleto** no lugar enquanto
+  isso. O que é lento não pode segurar o que é rápido.
+- **`cache()` do React dedupa por request.** O layout do grupo `(app)` e a
+  página pedem a sessão no mesmo request. Embrulhando `usuarioAtual` em
+  `cache()`, a consulta à sessão roda **uma vez por request** — mesma resposta,
+  metade das idas ao banco, comportamento idêntico.
+- **`loading.tsx` responde ao clique na hora.** Toda tela pesada ganhou um
+  esqueleto que "pulsa" no lugar do conteúdo enquanto o servidor trabalha —
+  o clique deixa de parecer "travado". Percepção de velocidade também é
+  velocidade.
+
+Decisão registrada: mantivemos o **nome do produto (LexFlow)**, agora rendido
+na identidade LEX (marca + degradê), com **LEX TECHNOLOGY** como assinatura —
+sem renomear o produto por conta própria.
+
+---
+
 ## O que vem a seguir
 
 O ciclo do WhatsApp está fechado — **recebe, roteia, mostra e responde** — e a

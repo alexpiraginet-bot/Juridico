@@ -101,67 +101,36 @@ function CarregandoResumo() {
   );
 }
 
-export default async function PaginaProcesso({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+// Esqueleto enquanto o DataJud responde (pode levar segundos): o cabeçalho
+// já está na tela; só este bloco fica "carregando".
+function CarregandoProcessual() {
+  return (
+    <div className="mt-5 space-y-3" aria-hidden>
+      <div className="h-28 animate-pulse rounded-xl border border-borda bg-superficie" />
+      <div className="h-3.5 w-48 animate-pulse rounded bg-plano-2" />
+      <div className="h-3.5 w-full animate-pulse rounded bg-plano-2" />
+      <div className="h-3.5 w-4/5 animate-pulse rounded bg-plano-2" />
+      <p className="pt-1 text-[11.5px] text-suave">📡 consultando os andamentos no DataJud/CNJ…</p>
+    </div>
+  );
+}
 
-  const processo = await bd.processo.findUnique({
-    where: { id },
-    include: {
-      cliente: { select: { nome: true } },
-      prazos: { where: { concluido: false }, orderBy: { vencimento: "asc" } },
-    },
-  });
-  if (!processo) notFound();
-
-  const fase = seloDaFase(processo.fase);
-
-  // Andamentos (DataJud) e intimações já salvas (DJEN) em paralelo.
-  const [consulta, intimacoes] = await Promise.all([
-    consultarProcesso(processo.numero),
-    bd.intimacao
-      .findMany({ where: { numeroProcesso: processo.numero }, orderBy: { dataDisponibilizacao: "desc" }, take: 10 })
-      .catch(() => [] as Awaited<ReturnType<typeof bd.intimacao.findMany>>),
-  ]);
+/*
+ * Bloco processual (andamentos do DataJud + resumo da IA). É aqui que mora
+ * a chamada lenta ao DataJud (até 20s) — isolada num componente assíncrono
+ * sob <Suspense>, para não bloquear o primeiro paint do cabeçalho, que vem
+ * de uma consulta rápida ao banco.
+ */
+async function BlocoProcessual({ numero }: { numero: string }) {
+  const consulta = await consultarProcesso(numero);
   const detalhe: ProcessoDetalhado | null = consulta.processo;
-
   const andamentosParaIa: AndamentoParaIa[] = (detalhe?.movimentos ?? []).map((m) => ({
     nome: m.nome,
     data: dataCurta(m.data),
   }));
 
   return (
-    <div>
-      <Link href="/processos" className="text-xs font-semibold text-verde-escuro hover:underline">
-        ← Processos
-      </Link>
-
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold text-navy">{processo.titulo}</h1>
-          <p className="mt-0.5 font-mono text-[12px] text-suave">{processo.numero}</p>
-        </div>
-        <Link
-          href={`/processos/${processo.id}/editar`}
-          className="rounded-lg border border-borda px-3 py-1.5 text-[12px] font-semibold hover:bg-plano"
-        >
-          Editar
-        </Link>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Selo tom="cinza">{AREAS[processo.area]}</Selo>
-        <Selo tom={fase.tom}>{fase.rotulo}</Selo>
-        {processo.tribunal && <span className="text-xs text-suave">{processo.tribunal}</span>}
-        <span className="text-xs text-suave">
-          cliente: <b className="text-tinta">{processo.cliente.nome}</b>
-        </span>
-        {processo.valorCausa != null && (
-          <span className="text-xs text-suave">
-            valor: <b className="text-tinta">{formatarMoeda(Number(processo.valorCausa))}</b>
-          </span>
-        )}
-      </div>
-
+    <>
       {/* Resumo da IA — a partir dos andamentos do DataJud */}
       <div className="mt-5">
         {consulta.erro ? (
@@ -205,6 +174,66 @@ export default async function PaginaProcesso({ params }: { params: Promise<{ id:
           </ol>
         </div>
       )}
+    </>
+  );
+}
+
+export default async function PaginaProcesso({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  const processo = await bd.processo.findUnique({
+    where: { id },
+    include: {
+      cliente: { select: { nome: true } },
+      prazos: { where: { concluido: false }, orderBy: { vencimento: "asc" } },
+    },
+  });
+  if (!processo) notFound();
+
+  const fase = seloDaFase(processo.fase);
+
+  // Intimações já salvas (DJEN) — consulta rápida ao banco, entra no primeiro paint.
+  const intimacoes = await bd.intimacao
+    .findMany({ where: { numeroProcesso: processo.numero }, orderBy: { dataDisponibilizacao: "desc" }, take: 10 })
+    .catch(() => [] as Awaited<ReturnType<typeof bd.intimacao.findMany>>);
+
+  return (
+    <div>
+      <Link href="/processos" className="text-xs font-semibold text-verde-escuro hover:underline">
+        ← Processos
+      </Link>
+
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-navy">{processo.titulo}</h1>
+          <p className="mt-0.5 font-mono text-[12px] text-suave">{processo.numero}</p>
+        </div>
+        <Link
+          href={`/processos/${processo.id}/editar`}
+          className="rounded-lg border border-borda px-3 py-1.5 text-[12px] font-semibold hover:bg-plano"
+        >
+          Editar
+        </Link>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Selo tom="cinza">{AREAS[processo.area]}</Selo>
+        <Selo tom={fase.tom}>{fase.rotulo}</Selo>
+        {processo.tribunal && <span className="text-xs text-suave">{processo.tribunal}</span>}
+        <span className="text-xs text-suave">
+          cliente: <b className="text-tinta">{processo.cliente.nome}</b>
+        </span>
+        {processo.valorCausa != null && (
+          <span className="text-xs text-suave">
+            valor: <b className="text-tinta">{formatarMoeda(Number(processo.valorCausa))}</b>
+          </span>
+        )}
+      </div>
+
+      {/* Andamentos do DataJud + resumo da IA — por streaming, sem travar o cabeçalho. */}
+      <Suspense fallback={<CarregandoProcessual />}>
+        <BlocoProcessual numero={processo.numero} />
+      </Suspense>
 
       {/* Intimações capturadas do DJEN para este processo (Passo 18) */}
       {intimacoes.length > 0 && (

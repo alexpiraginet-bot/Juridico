@@ -169,7 +169,7 @@ export function PainelAtendimentos({
             type="button"
             onClick={() => trocarConversa(indice)}
             className={`block w-full border-b border-plano-2 px-3.5 py-3 text-left hover:bg-realce ${
-              indice === indiceAtivo ? "border-l-[3px] border-l-verde bg-selo-verde" : ""
+              indice === indiceAtivo ? "border-l-[3px] border-l-verde bg-selo-azul" : ""
             }`}
           >
             <b className="block text-[13px]">{item.nome}</b>

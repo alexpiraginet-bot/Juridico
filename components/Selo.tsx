@@ -6,7 +6,7 @@
 import type { TomSelo } from "@/lib/tipos";
 
 const estilos: Record<TomSelo, string> = {
-  verde: "bg-selo-verde text-verde-escuro",
+  verde: "bg-selo-verde text-sucesso-escuro",
   ambar: "bg-selo-ambar text-ambar",
   vermelho: "bg-selo-vermelho text-vermelho",
   azul: "bg-selo-azul text-azul",

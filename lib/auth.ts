@@ -9,6 +9,7 @@
  */
 
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
@@ -62,7 +63,13 @@ export interface UsuarioLogado {
   team: { id: string; nome: string; logoUrl: string | null } | null;
 }
 
-export async function usuarioAtual(): Promise<UsuarioLogado | null> {
+/*
+ * Sessão do request atual. Embrulhada em `cache()` do React: o layout do
+ * grupo (app) e a própria página chamam isto no mesmo request — com o cache,
+ * a consulta à sessão roda uma vez só por request (dedupe), sem mudar o
+ * comportamento (cada request tem seu próprio cache).
+ */
+export const usuarioAtual = cache(async function usuarioAtual(): Promise<UsuarioLogado | null> {
   let token: string | undefined;
   try {
     token = (await cookies()).get(COOKIE)?.value;
@@ -89,7 +96,7 @@ export async function usuarioAtual(): Promise<UsuarioLogado | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function exigirUsuario(): Promise<UsuarioLogado> {
   const u = await usuarioAtual();

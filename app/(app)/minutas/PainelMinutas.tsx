@@ -254,7 +254,7 @@ export function PainelMinutas({ processos, iaAtiva, minutasSalvas }: Props) {
                 <li
                   key={m.id}
                   className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 ${
-                    atual?.id === m.id ? "border-verde bg-selo-verde" : "border-borda"
+                    atual?.id === m.id ? "border-verde bg-selo-azul" : "border-borda"
                   }`}
                 >
                   <button

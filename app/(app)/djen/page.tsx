@@ -117,7 +117,7 @@ export default async function PaginaDjen({
       </form>
 
       {novas != null && (
-        <div className="mb-3.5 rounded-lg border border-[#BFD8BF] bg-selo-verde px-3 py-2 text-[12.5px] text-verde-escuro">
+        <div className="mb-3.5 rounded-lg border border-[#BFD8BF] bg-selo-verde px-3 py-2 text-[12.5px] text-sucesso-escuro">
           📥 Importadas <b>{novas}</b> nova{novas === "1" ? "" : "s"}
           {recebidas ? <> de {recebidas} comunicações lidas</> : null} — as repetidas foram ignoradas.
         </div>
@@ -163,7 +163,7 @@ export default async function PaginaDjen({
                 <input type="hidden" name="uf" value={ufAtual} />
                 <button
                   type="submit"
-                  className="rounded-lg border border-verde bg-selo-verde px-3 py-1.5 text-[12px] font-semibold text-verde-escuro hover:bg-verde hover:text-white"
+                  className="rounded-lg border border-verde bg-selo-azul px-3 py-1.5 text-[12px] font-semibold text-verde-escuro hover:bg-verde hover:text-white"
                 >
                   📥 Importar para o sistema
                 </button>

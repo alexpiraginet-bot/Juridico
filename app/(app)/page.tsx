@@ -25,33 +25,49 @@ export default async function PaginaDashboard() {
   const em7 = new Date(hoje.getTime() + 7 * 86_400_000);
   const seteDiasAtras = new Date(agora.getTime() - 7 * 86_400_000);
 
-  // Globais (tabelas da Fase 2, sem inquilino).
-  const [processosAtivos, prazosAValidar, prazosAVencer, prazosProximos, aValidarLista] =
-    await Promise.all([
-      bd.processo.count().catch(() => 0),
-      bd.prazo.count({ where: { validado: false, concluido: false } }).catch(() => 0),
-      bd.prazo
-        .count({ where: { concluido: false, vencimento: { gte: hoje, lte: em7 } } })
-        .catch(() => 0),
-      bd.prazo
-        .findMany({
-          where: { concluido: false },
-          orderBy: { vencimento: "asc" },
-          take: 6,
-          include: { processo: { select: { numero: true, titulo: true } } },
-        })
-        .catch(() => []),
-      bd.prazo
-        .findMany({
-          where: { validado: false, concluido: false },
-          orderBy: { vencimento: "asc" },
-          take: 4,
-          include: { processo: { select: { numero: true } } },
-        })
-        .catch(() => []),
-    ]);
+  // Dispara as duas ondas de consultas JUNTAS (globais da Fase 2 + as do
+  // escritório) e só então espera — antes o segundo Promise.all só começava
+  // depois do primeiro terminar; agora ambas correm em paralelo, cortando uma
+  // ida ao banco na home (todo login cai aqui).
+  const globaisP = Promise.all([
+    bd.processo.count().catch(() => 0),
+    bd.prazo.count({ where: { validado: false, concluido: false } }).catch(() => 0),
+    bd.prazo
+      .count({ where: { concluido: false, vencimento: { gte: hoje, lte: em7 } } })
+      .catch(() => 0),
+    bd.prazo
+      .findMany({
+        where: { concluido: false },
+        orderBy: { vencimento: "asc" },
+        take: 6,
+        include: { processo: { select: { numero: true, titulo: true } } },
+      })
+      .catch(() => []),
+    bd.prazo
+      .findMany({
+        where: { validado: false, concluido: false },
+        orderBy: { vencimento: "asc" },
+        take: 4,
+        include: { processo: { select: { numero: true } } },
+      })
+      .catch(() => []),
+  ]);
 
-  // Do escritório (isolados por Team).
+  // Do escritório (isolados por Team) — começa a rodar já, junto das globais.
+  const doTimeP = teamId
+    ? Promise.all([
+        bd.tarefa.groupBy({ by: ["coluna"], where: { teamId }, _count: true }).catch(() => []),
+        bd.intimacao
+          .count({ where: { usuario: { teamId }, criadoEm: { gte: seteDiasAtras } } })
+          .catch(() => 0),
+        bd.conversaWhatsapp.count({ where: { teamId } }).catch(() => 0),
+        bd.minuta.groupBy({ by: ["status"], where: { teamId }, _count: true }).catch(() => []),
+      ])
+    : null;
+
+  const [processosAtivos, prazosAValidar, prazosAVencer, prazosProximos, aValidarLista] =
+    await globaisP;
+
   const tarefasPorColuna: Record<ColunaTarefa, number> = {
     A_FAZER: 0,
     EM_ANDAMENTO: 0,
@@ -61,13 +77,8 @@ export default async function PaginaDashboard() {
   const minutasPorStatus: Record<string, number> = {};
   let intimacoesNovas = 0;
   let conversas = 0;
-  if (teamId) {
-    const [grpTarefas, intims, convs, grpMinutas] = await Promise.all([
-      bd.tarefa.groupBy({ by: ["coluna"], where: { teamId }, _count: true }).catch(() => []),
-      bd.intimacao.count({ where: { usuario: { teamId }, criadoEm: { gte: seteDiasAtras } } }).catch(() => 0),
-      bd.conversaWhatsapp.count({ where: { teamId } }).catch(() => 0),
-      bd.minuta.groupBy({ by: ["status"], where: { teamId }, _count: true }).catch(() => []),
-    ]);
+  if (doTimeP) {
+    const [grpTarefas, intims, convs, grpMinutas] = await doTimeP;
     for (const g of grpTarefas) tarefasPorColuna[g.coluna] = g._count;
     for (const g of grpMinutas) minutasPorStatus[g.status] = g._count;
     intimacoesNovas = intims;
@@ -145,7 +156,7 @@ export default async function PaginaDashboard() {
 
       <div className="grid gap-3.5 xl:grid-cols-2">
         {/* Exige atenção — prazos a validar */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             ⚠️ Exige sua atenção
             <Link href="/prazos" className="text-[11.5px] font-semibold text-verde-escuro hover:underline">
@@ -180,7 +191,7 @@ export default async function PaginaDashboard() {
         </section>
 
         {/* Próximos prazos */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             ⏱️ Próximos prazos
             <Link
@@ -217,7 +228,7 @@ export default async function PaginaDashboard() {
         </section>
 
         {/* Tarefas por coluna */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             🗂️ Tarefas do escritório
             <Link href="/tarefas" className="text-[11.5px] font-semibold text-verde-escuro hover:underline">
@@ -243,7 +254,7 @@ export default async function PaginaDashboard() {
         </section>
 
         {/* Minutas */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             ✍️ Minutas assistidas por IA
             <Link href="/minutas" className="text-[11.5px] font-semibold text-verde-escuro hover:underline">
@@ -256,8 +267,8 @@ export default async function PaginaDashboard() {
               <p className="mt-1 text-[11.5px] text-suave">em elaboração (IA + edição)</p>
             </div>
             <div className="rounded-lg border border-[#BFD8BF] bg-selo-verde p-3 text-center">
-              <p className="text-2xl font-bold text-verde-escuro">{minutasAprovadas}</p>
-              <p className="mt-1 text-[11.5px] text-verde-escuro">aprovadas p/ protocolo</p>
+              <p className="text-2xl font-bold text-sucesso-escuro">{minutasAprovadas}</p>
+              <p className="mt-1 text-[11.5px] text-sucesso-escuro">aprovadas p/ protocolo</p>
             </div>
           </div>
           <p className="mt-3 text-[11px] text-suave">
