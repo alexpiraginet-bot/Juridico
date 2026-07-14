@@ -156,7 +156,7 @@ export default async function PaginaDashboard() {
 
       <div className="grid gap-3.5 xl:grid-cols-2">
         {/* Exige atenção — prazos a validar */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             ⚠️ Exige sua atenção
             <Link href="/prazos" className="text-[11.5px] font-semibold text-verde-escuro hover:underline">
@@ -191,7 +191,7 @@ export default async function PaginaDashboard() {
         </section>
 
         {/* Próximos prazos */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             ⏱️ Próximos prazos
             <Link
@@ -228,7 +228,7 @@ export default async function PaginaDashboard() {
         </section>
 
         {/* Tarefas por coluna */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             🗂️ Tarefas do escritório
             <Link href="/tarefas" className="text-[11.5px] font-semibold text-verde-escuro hover:underline">
@@ -254,7 +254,7 @@ export default async function PaginaDashboard() {
         </section>
 
         {/* Minutas */}
-        <section className="rounded-xl border border-borda bg-superficie p-4">
+        <section className="rounded-2xl border border-borda bg-superficie p-4 shadow-[var(--shadow-ios)]">
           <h3 className="mb-3 flex items-center justify-between text-[13px] font-bold text-navy">
             ✍️ Minutas assistidas por IA
             <Link href="/minutas" className="text-[11.5px] font-semibold text-verde-escuro hover:underline">
