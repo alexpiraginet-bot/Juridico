@@ -14,7 +14,7 @@ export function CartaoKpi({ valor, rotulo, detalhe, tom, valorDestaque }: Kpi) {
       <p className="mt-1 text-[11.5px] leading-snug text-suave">{rotulo}</p>
       <p
         className={`mt-1.5 text-[11px] font-semibold ${
-          tom === "bom" ? "text-verde-escuro" : "text-vermelho"
+          tom === "bom" ? "text-sucesso-escuro" : "text-vermelho"
         }`}
       >
         {detalhe}

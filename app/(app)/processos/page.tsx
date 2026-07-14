@@ -131,7 +131,7 @@ export default async function PaginaProcessos({
                     <td className="whitespace-nowrap px-2.5 py-2.5 text-right">
                       <Link
                         href={`/processos/${processo.id}`}
-                        className="mr-2 rounded-lg border border-verde bg-selo-verde px-2.5 py-1 text-[11px] font-semibold text-verde-escuro hover:bg-verde hover:text-white"
+                        className="mr-2 rounded-lg border border-verde bg-selo-azul px-2.5 py-1 text-[11px] font-semibold text-verde-escuro hover:bg-verde hover:text-white"
                       >
                         Abrir
                       </Link>

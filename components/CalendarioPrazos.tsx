@@ -54,7 +54,7 @@ function estiloDoPrazo(p: PrazoCalendario, hoje: string): { chip: string; ponto:
   if (p.concluido) return { chip: "bg-selo-cinza text-suave line-through", ponto: "bg-suave" };
   if (chaveDia(p.vencimento) < hoje) return { chip: "bg-selo-vermelho text-vermelho", ponto: "bg-vermelho" };
   if (!p.validado) return { chip: "bg-selo-ambar text-ambar", ponto: "bg-ambar" };
-  return { chip: "bg-selo-verde text-verde-escuro", ponto: "bg-verde" };
+  return { chip: "bg-selo-verde text-sucesso-escuro", ponto: "bg-sucesso" };
 }
 
 export function CalendarioPrazos({ prazos, mes }: { prazos: PrazoCalendario[]; mes: string }) {
@@ -170,7 +170,7 @@ export function CalendarioPrazos({ prazos, mes }: { prazos: PrazoCalendario[]; m
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-suave">
         {[
-          ["bg-verde", "validado"],
+          ["bg-sucesso", "validado"],
           ["bg-ambar", "pendente de validação"],
           ["bg-vermelho", "atrasado"],
           ["bg-suave", "concluído"],

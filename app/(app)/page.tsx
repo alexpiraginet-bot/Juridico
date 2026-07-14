@@ -256,8 +256,8 @@ export default async function PaginaDashboard() {
               <p className="mt-1 text-[11.5px] text-suave">em elaboração (IA + edição)</p>
             </div>
             <div className="rounded-lg border border-[#BFD8BF] bg-selo-verde p-3 text-center">
-              <p className="text-2xl font-bold text-verde-escuro">{minutasAprovadas}</p>
-              <p className="mt-1 text-[11.5px] text-verde-escuro">aprovadas p/ protocolo</p>
+              <p className="text-2xl font-bold text-sucesso-escuro">{minutasAprovadas}</p>
+              <p className="mt-1 text-[11.5px] text-sucesso-escuro">aprovadas p/ protocolo</p>
             </div>
           </div>
           <p className="mt-3 text-[11px] text-suave">

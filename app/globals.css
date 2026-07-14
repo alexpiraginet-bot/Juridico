@@ -1,47 +1,93 @@
 @import "tailwindcss";
 
 /*
- * Tokens de design do LexFlow — a paleta vem do protótipo original
- * (public/prototipo.html) e é usada nas telas como classes do Tailwind:
- * bg-superficie, text-navy, bg-selo-verde etc.
+ * Tokens de design — identidade LEX TECHNOLOGY (rebranding) com feel iOS 26.
+ * Usados nas telas como classes do Tailwind: bg-superficie, text-navy,
+ * bg-selo-verde, bg-verde (ação), etc.
+ *
+ * Decisão de rebranding: o acento de AÇÃO passou a ser o AZUL da LEX
+ * (degradê azul→violeta). Os tokens `verde`/`verde-escuro` mantiveram o NOME
+ * (para não tocar em cada tela), mas agora valem o azul da marca — então os
+ * botões, o item ativo da barra e os focos viram a identidade automaticamente.
+ * O verde de "sucesso" (validado/aprovado/concluído) ganhou tokens próprios
+ * (`sucesso*`), separado da marca.
  */
 @theme {
-  /* Marca */
-  --color-navy: #1b2a41; /* azul-marinho institucional (barra lateral, títulos) */
-  --color-navy-2: #243a5a;
-  --color-navy-tinta: #c7d0dc; /* texto sobre o navy */
-  --color-verde: #7fa65a; /* verde da marca (ações, item ativo) */
-  --color-verde-escuro: #4e6b33;
+  /* ===== Marca / tinta ===== */
+  --color-navy: #0f1729; /* tinta profunda: barra lateral, títulos, escuro */
+  --color-navy-2: #1b2540;
+  --color-navy-tinta: #b8c4d8; /* texto sobre o navy */
 
-  /* Superfícies */
-  --color-plano: #f4f3ee; /* fundo geral da página */
-  --color-plano-2: #efeee7; /* colunas do kanban, trilhas */
+  /* Acento da marca (AZUL LEX) — usado como cor de ação em todo o app */
+  --color-verde: #2e7dff;
+  --color-verde-escuro: #1e63e6;
+  --color-lex-azul: #2e7dff;
+  --color-lex-violeta: #7c3aed;
+
+  /* Sucesso (verde de verdade), separado da marca */
+  --color-sucesso: #2f9e5e;
+  --color-sucesso-escuro: #1f7a45;
+
+  /* ===== Superfícies (iOS 26 — claro, arejado) ===== */
+  --color-plano: #f4f5f8; /* fundo geral da página */
+  --color-plano-2: #eceef3; /* colunas do kanban, trilhas */
   --color-superficie: #ffffff; /* cartões e tabelas */
-  --color-borda: #e3e1d8;
-  --color-realce: #fafaf6; /* linha destacada / hover de tabela */
+  --color-borda: #e6e8ef; /* hairline */
+  --color-realce: #f7f8fb; /* hover de linha */
 
-  /* Texto */
-  --color-tinta: #22252a;
-  --color-suave: #7a7e87;
+  /* ===== Texto ===== */
+  --color-tinta: #131722;
+  --color-suave: #6b7280;
 
-  /* Alertas e estados */
+  /* ===== Alertas e estados ===== */
   --color-ambar: #c98a2d;
-  --color-vermelho: #b4483e;
-  --color-azul: #3d6b9e;
+  --color-vermelho: #e5484d;
+  --color-azul: #2e7dff;
 
   /* Fundos suaves dos selos (tags) */
-  --color-selo-verde: #ebf2e2;
+  --color-selo-verde: #e6f4ec; /* sucesso (verde suave) */
   --color-selo-ambar: #fff4e0;
-  --color-selo-vermelho: #f9e8e6;
-  --color-selo-azul: #e7eff7;
-  --color-selo-cinza: #eeeee9;
-  --color-selo-navy: #e4e9f0;
+  --color-selo-vermelho: #fdecec;
+  --color-selo-azul: #e7f0ff; /* azul LEX suave */
+  --color-selo-cinza: #eef0f4;
+  --color-selo-navy: #e6eaf3;
 
-  /* Conteúdo gerado por IA — sempre sinalizado com este par */
-  --color-ia-fundo: #f0ebfa;
-  --color-ia-tinta: #6b4fa8;
+  /* Conteúdo gerado por IA — sempre sinalizado (violeta LEX) */
+  --color-ia-fundo: #efe9fd;
+  --color-ia-tinta: #6d28d9;
 
   /* Conversa (WhatsApp) */
-  --color-chat-fundo: #efeae2;
+  --color-chat-fundo: #eef1f6;
   --color-chat-bolha: #dcf2c8;
+
+  /* ===== Tipografia (feel iOS 26: SF Pro nas Apple; Inter/sistema no resto) ===== */
+  --font-sans: "SF Pro Display", "SF Pro Text", "Inter", system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* ===== Sombras suaves em camadas (iOS 26) ===== */
+  --shadow-ios: 0 1px 2px rgba(15, 23, 41, 0.04), 0 8px 24px rgba(15, 23, 41, 0.06);
+  --shadow-ios-lg: 0 2px 6px rgba(15, 23, 41, 0.06), 0 24px 60px rgba(15, 23, 41, 0.12);
+
+  /* Raio maior (squircle iOS) */
+  --radius-2xl: 1.15rem;
+}
+
+/* ===== Utilidades da marca LEX ===== */
+/* Degradê azul→violeta da LEX, para superfícies (barra ativa, botões-marca). */
+.grad-lex {
+  background-image: linear-gradient(118deg, #2e7dff 0%, #7c3aed 100%);
+}
+/* Degradê aplicado ao texto (ex.: "Flow" do wordmark, títulos de destaque). */
+.text-grad-lex {
+  background-image: linear-gradient(118deg, #2e7dff 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Anel de foco consistente (acessibilidade + feel iOS) para teclado. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-lex-azul);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
 }
