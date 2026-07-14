@@ -99,12 +99,16 @@ function diasJanelaPadrao(): number {
 
 /*
  * A janela padrão (início/fim, em AAAA-MM-DD, fuso de Brasília) que a
- * busca usa quando quem chama não pede uma faixa. O fim é AMANHÃ, de
- * propósito: dá folga para a borda de fuso e para publicações
- * disponibilizadas com data um pouco à frente.
+ * busca usa quando quem chama não pede uma faixa. O fim é HOJE (fuso de
+ * Brasília) — NUNCA uma data no futuro: nada é disponibilizado adiante do
+ * dia corrente e o DJEN valida a faixa (`dataDisponibilizacaoFim` no
+ * futuro escapa da regra da API e pode zerar a busca). Como `dataBrasilia`
+ * já resolve tudo no fuso certo, "hoje" cobre todas as publicações até
+ * agora; se alguma vier pós-datada, a varredura diária (janela de ~30 dias
+ * + dedup) a reconfere no dia seguinte.
  */
 export function janelaPadrao(): { inicio: string; fim: string } {
-  return { inicio: dataBrasilia(diasJanelaPadrao()), fim: dataBrasilia(-1) };
+  return { inicio: dataBrasilia(diasJanelaPadrao()), fim: dataBrasilia(0) };
 }
 
 export async function buscarNoDjen(
