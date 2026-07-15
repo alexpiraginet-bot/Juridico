@@ -14,15 +14,23 @@ export const dynamic = "force-dynamic";
 export default async function PaginaProcessos({
   searchParams,
 }: {
-  searchParams: Promise<{ area?: string; erro?: string }>;
+  searchParams: Promise<{ area?: string; busca?: string; erro?: string }>;
 }) {
-  const { area, erro } = await searchParams;
+  const { area, busca: buscaBruta, erro } = await searchParams;
   const areaFiltrada =
     area && area in AreaProcesso ? (area as AreaProcesso) : undefined;
+  const busca = (buscaBruta ?? "").trim();
+
+  const filtro: {
+    area?: AreaProcesso;
+    numero?: { contains: string; mode: "insensitive" };
+  } = {};
+  if (areaFiltrada) filtro.area = areaFiltrada;
+  if (busca) filtro.numero = { contains: busca, mode: "insensitive" };
 
   const [processos, contagemPorArea, total] = await Promise.all([
     bd.processo.findMany({
-      where: areaFiltrada ? { area: areaFiltrada } : undefined,
+      where: Object.keys(filtro).length ? filtro : undefined,
       include: {
         cliente: { select: { nome: true } },
         _count: { select: { prazos: true } },
@@ -59,18 +67,46 @@ export default async function PaginaProcessos({
       )}
 
       {total > 0 && (
-        <div className="mb-3.5 flex flex-wrap gap-2">
-          <Link href="/processos">
-            <Selo tom={areaFiltrada ? "cinza" : "navy"}>Todos ({total})</Selo>
-          </Link>
-          {contagemPorArea.map((grupo) => (
-            <Link key={grupo.area} href={`/processos?area=${grupo.area}`}>
-              <Selo tom={areaFiltrada === grupo.area ? "navy" : "cinza"}>
-                {AREAS[grupo.area]} ({grupo._count._all})
-              </Selo>
+        <>
+          <form method="get" className="mb-3 flex gap-2">
+            {areaFiltrada && <input type="hidden" name="area" value={areaFiltrada} />}
+            <input
+              type="search"
+              name="busca"
+              defaultValue={busca}
+              placeholder="Buscar por número CNJ…"
+              aria-label="Buscar por número CNJ"
+              className="w-full max-w-sm rounded-lg border border-borda bg-superficie px-3 py-2 text-[13px] outline-none focus:border-verde"
+            />
+            <button
+              type="submit"
+              className="rounded-lg border border-borda px-3.5 py-2 text-[12.5px] font-semibold text-navy hover:bg-plano"
+            >
+              Buscar
+            </button>
+            {busca && (
+              <Link
+                href={areaFiltrada ? `/processos?area=${areaFiltrada}` : "/processos"}
+                className="self-center text-[12.5px] font-semibold text-verde-escuro hover:underline"
+              >
+                Limpar
+              </Link>
+            )}
+          </form>
+
+          <div className="mb-3.5 flex flex-wrap gap-2">
+            <Link href="/processos">
+              <Selo tom={areaFiltrada ? "cinza" : "navy"}>Todos ({total})</Selo>
             </Link>
-          ))}
-        </div>
+            {contagemPorArea.map((grupo) => (
+              <Link key={grupo.area} href={`/processos?area=${grupo.area}`}>
+                <Selo tom={areaFiltrada === grupo.area ? "navy" : "cinza"}>
+                  {AREAS[grupo.area]} ({grupo._count._all})
+                </Selo>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
 
       {total === 0 ? (
@@ -89,6 +125,22 @@ export default async function PaginaProcessos({
           >
             Cadastrar o primeiro processo
           </Link>
+        </div>
+      ) : processos.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-borda bg-superficie p-10 text-center">
+          <p className="text-[15px] font-semibold text-navy">Nenhum processo encontrado</p>
+          <p className="mx-auto mt-1 max-w-md text-[12.5px] text-suave">
+            Nenhum processo corresponde
+            {busca ? ` ao número “${busca}”` : ""}
+            {busca && areaFiltrada ? " nesta área" : ""}. Ajuste ou{" "}
+            <Link
+              href={areaFiltrada && !busca ? `/processos?area=${areaFiltrada}` : "/processos"}
+              className="font-semibold text-verde-escuro underline"
+            >
+              limpe a busca
+            </Link>
+            .
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-borda bg-superficie p-4">
