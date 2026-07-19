@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "node scripts/migrar-se-configurado.mjs && next build",
+    "vercel-build": "next build",
+    "db:migrate": "node scripts/migrar-se-configurado.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test && npm run build",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -26,10 +29,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
-    "postcss": "^8.5.0",
+    "postcss": "8.5.10",
     "prisma": "^7.8.0",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.23.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.10"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.13",
+    "postcss": "8.5.10"
   }
 }

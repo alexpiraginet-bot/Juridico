@@ -9,7 +9,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { registrarAuditoria } from "@/lib/auditoria";
 
 function texto(dados: FormData, campo: string): string {
@@ -17,6 +17,7 @@ function texto(dados: FormData, campo: string): string {
 }
 
 export async function criarPrazo(dados: FormData) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const descricao = texto(dados, "descricao");
   const vencimento = texto(dados, "vencimento"); // AAAA-MM-DD do <input type="date">
   const processoId = texto(dados, "processoId");
@@ -27,15 +28,31 @@ export async function criarPrazo(dados: FormData) {
     erro = "Descrição, vencimento e processo são obrigatórios.";
   } else {
     try {
-      await bd.prazo.create({
-        data: {
-          descricao,
-          vencimento: new Date(`${vencimento}T00:00:00.000Z`),
-          responsavel,
-          processoId,
-          validado: true, // criado à mão por um humano — já nasce validado
-        },
+      const processo = await bd.processo.findFirst({
+        where: { id: processoId, teamId: usuario.teamId },
+        select: { id: true },
       });
+      if (!processo) {
+        erro = "Processo inválido para este escritório.";
+      } else {
+        await bd.prazo.create({
+          data: {
+            descricao,
+            vencimento: new Date(`${vencimento}T00:00:00.000Z`),
+            responsavel,
+            processoId,
+            teamId: usuario.teamId,
+            validado: true, // criado à mão por um humano — já nasce validado
+          },
+        });
+        await registrarAuditoria({
+          usuarioId: usuario.id,
+          usuarioNome: usuario.nome,
+          teamId: usuario.teamId,
+          acao: "prazo.criado",
+          detalhe: `criou o prazo '${descricao}'`,
+        });
+      }
     } catch {
       erro = "Não foi possível salvar — verifique a conexão com o banco.";
     }
@@ -47,9 +64,16 @@ export async function criarPrazo(dados: FormData) {
 }
 
 export async function validarPrazo(id: string) {
-  const usuario = await exigirUsuario();
-  // O update devolve o prazo já atualizado — usamos a descrição no log.
-  const prazo = await bd.prazo.update({ where: { id }, data: { validado: true } });
+  const usuario = await exigirUsuarioDoEscritorio();
+  const prazo = await bd.prazo.findFirst({
+    where: { id, teamId: usuario.teamId },
+    select: { descricao: true },
+  });
+  if (!prazo) redirect("/prazos");
+  await bd.prazo.updateMany({
+    where: { id, teamId: usuario.teamId },
+    data: { validado: true },
+  });
   await registrarAuditoria({
     usuarioId: usuario.id,
     usuarioNome: usuario.nome,
@@ -61,12 +85,17 @@ export async function validarPrazo(id: string) {
 }
 
 export async function concluirPrazo(id: string) {
-  await bd.prazo.update({ where: { id }, data: { concluido: true } });
+  const usuario = await exigirUsuarioDoEscritorio();
+  await bd.prazo.updateMany({
+    where: { id, teamId: usuario.teamId },
+    data: { concluido: true },
+  });
   revalidatePath("/prazos");
 }
 
 export async function excluirPrazo(id: string) {
-  await bd.prazo.delete({ where: { id } });
+  const usuario = await exigirUsuarioDoEscritorio();
+  await bd.prazo.deleteMany({ where: { id, teamId: usuario.teamId } });
   revalidatePath("/prazos");
 }
 
@@ -78,8 +107,11 @@ export async function excluirPrazo(id: string) {
  */
 export async function validarPrazoDaCitacao(): Promise<{ ok: boolean; erro?: string }> {
   try {
+    const usuario = await exigirUsuarioDoEscritorio();
     const joao = await bd.cliente.upsert({
-      where: { cpfCnpj: "555.666.777-88" },
+      where: {
+        teamId_cpfCnpj: { teamId: usuario.teamId, cpfCnpj: "555.666.777-88" },
+      },
       update: {},
       create: {
         nome: "João Pereira",
@@ -87,10 +119,13 @@ export async function validarPrazoDaCitacao(): Promise<{ ok: boolean; erro?: str
         email: "jpereira@email.com",
         telefone: "(27) 98822-4455",
         cidade: "Vitória/ES",
+        teamId: usuario.teamId,
       },
     });
     const processo = await bd.processo.upsert({
-      where: { numero: "0801234-55.2026.8.08.0024" },
+      where: {
+        teamId_numero: { teamId: usuario.teamId, numero: "0801234-55.2026.8.08.0024" },
+      },
       update: {},
       create: {
         numero: "0801234-55.2026.8.08.0024",
@@ -101,14 +136,18 @@ export async function validarPrazoDaCitacao(): Promise<{ ok: boolean; erro?: str
         ultimoEvento: "Citação capturada do DJEN — contestar até 31/07",
         valorCausa: 85_000,
         clienteId: joao.id,
+        teamId: usuario.teamId,
       },
     });
 
     const contestacao = await bd.prazo.findFirst({
-      where: { processoId: processo.id, descricao: "Contestação" },
+      where: { processoId: processo.id, teamId: usuario.teamId, descricao: "Contestação" },
     });
     if (contestacao) {
-      await bd.prazo.update({ where: { id: contestacao.id }, data: { validado: true } });
+      await bd.prazo.updateMany({
+        where: { id: contestacao.id, teamId: usuario.teamId },
+        data: { validado: true },
+      });
     } else {
       await bd.prazo.create({
         data: {
@@ -117,6 +156,7 @@ export async function validarPrazoDaCitacao(): Promise<{ ok: boolean; erro?: str
           responsavel: "Dr. Gustavo",
           validado: true,
           processoId: processo.id,
+          teamId: usuario.teamId,
         },
       });
     }

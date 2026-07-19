@@ -103,7 +103,8 @@ export default async function PaginaIntimacao({
   const intimacao = await bd.intimacao.findUnique({
     where: { id },
     include: {
-      usuario: { select: { nome: true } }, // o dono da captura
+      usuario: { select: { nome: true } }, // dono legado, usado durante o rollout
+      destinatarios: { select: { usuarioId: true } },
       compartilhamentos: {
         include: { usuario: { select: { id: true, nome: true, email: true } } },
         orderBy: { criadoEm: "asc" },
@@ -111,15 +112,22 @@ export default async function PaginaIntimacao({
     },
   });
 
-  // Quem abre: o dono da captura OU alguém com quem ela foi compartilhada.
-  const ehDono = !!intimacao && intimacao.usuarioId === usuario.id;
+  // Quem abre: qualquer destinatário da publicação OU alguém com acesso
+  // compartilhado. O usuarioId legado permanece como fallback do rollout.
+  const ehDono =
+    !!intimacao &&
+    (intimacao.usuarioId === usuario.id ||
+      intimacao.destinatarios.some((d) => d.usuarioId === usuario.id));
   const recebida = !!intimacao && intimacao.compartilhamentos.some((c) => c.usuarioId === usuario.id);
   if (!intimacao || (!ehDono && !recebida)) notFound();
 
   // Só o dono compartilha. Ofereço os colegas do mesmo Team que ainda não têm.
   let colegas: { id: string; nome: string; email: string }[] = [];
   if (ehDono && usuario.teamId) {
-    const jaTem = new Set(intimacao.compartilhamentos.map((c) => c.usuarioId));
+    const jaTem = new Set([
+      ...intimacao.compartilhamentos.map((c) => c.usuarioId),
+      ...intimacao.destinatarios.map((d) => d.usuarioId),
+    ]);
     const equipe = await bd.usuario.findMany({
       where: { teamId: usuario.teamId, id: { not: usuario.id } },
       orderBy: { nome: "asc" },

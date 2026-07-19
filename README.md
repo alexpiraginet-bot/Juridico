@@ -9,7 +9,8 @@ Plataforma de gestão para escritórios de advocacia que junta, em um só lugar:
 - **Prazos** — cálculo determinístico com fundamento legal; nada entra na agenda sem validação de um advogado.
 - **Minutas IA** — peças redigidas com o contexto completo do caso, com versões rastreadas; o sistema nunca protocola sozinho.
 
-> Status: protótipo navegável com dados fictícios (o "mundo" da demonstração é 10/07/2026).
+> Status: núcleo operacional persistido, autenticado e isolado por escritório; o
+> fallback visual de alguns atendimentos ainda usa o mundo fictício de 10/07/2026.
 > O protótipo original de tela única está preservado em [`public/prototipo.html`](public/prototipo.html) — com o app rodando, acesse `/prototipo.html` para ver inclusive o modo apresentação.
 
 ## Stack
@@ -25,12 +26,15 @@ Plataforma de gestão para escritórios de advocacia que junta, em um só lugar:
 
 ## Como rodar
 
-Pré-requisitos: Node.js 20+ (`node -v`) e a URL de um banco PostgreSQL.
+Pré-requisitos: Node.js 20+ (`node -v`) e um banco PostgreSQL dedicado ao LexFlow.
+Em Supabase + Vercel, use duas conexões: `DATABASE_URL` no pool transacional
+(runtime serverless) e `DIRECT_URL` no pool de sessão (migrações).
 
 ```bash
 npm install                 # dependências + cliente do banco (postinstall)
 npx vercel env pull .env    # puxa DATABASE_URL e ANTHROPIC_API_KEY do projeto na Vercel
                             # (alternativa: cp .env.example .env e preencher)
+npm run db:migrate          # aplica migrações explicitamente, antes do deploy
 npx prisma db seed          # opcional: dados de exemplo do protótipo
 npm run dev                 # sobe o servidor de desenvolvimento
 ```
@@ -49,6 +53,8 @@ Outros comandos:
 npm run build      # gera a versão otimizada de produção
 npm start          # roda a versão de produção (depois do build)
 npm run typecheck  # confere os tipos sem gerar nada
+npm test           # testes de segurança e contratos de dados
+npm run check      # tipos + testes + build
 ```
 
 ## Estrutura de pastas
@@ -98,6 +104,8 @@ O repositório está conectado à Vercel (deploy contínuo):
 - **Produção** (branch `main`): <https://juridico-liard.vercel.app>
 - Cada branch/PR ganha automaticamente um endereço de pré-visualização.
 - O build é configurado por [`vercel.json`](vercel.json) (`framework: nextjs`).
+- Migrações **não** rodam durante o build: aplique `npm run db:migrate`, valide
+  a base e só então promova o mesmo artefato. Preview nunca toca produção.
 - As funções rodam na região **São Paulo (`gru1`)** — o DJEN/CNJ só aceita acessos do Brasil.
 
 ## Documentação
@@ -111,5 +119,5 @@ O repositório está conectado à Vercel (deploy contínuo):
 2. ✅ **Fase 1.5 — unificação**: o protótipo LexFlow vira o produto (identidade, 8 telas e fluxos de demonstração).
 3. ✅ **Fase 2 — banco de dados na nuvem**: PostgreSQL + Prisma, cadastro real de clientes, processos e prazos com validação humana.
 4. ✅ **Fase 5 — IA e dados reais**: minutas redigidas pela API do Claude, consulta pública de jurisprudência ao DataJud/CNJ, resumo de intimações do DJEN e **relato fático dos atendimentos** (a IA lê a conversa do WhatsApp e redige o relato, a linha do tempo, o checklist de documentos e as perguntas ao cliente — sempre com validação humana).
-5. ✅ **Fase 3 — autenticação e multi-inquilino**: login por e-mail+senha, app inteiro atrás do login com navegação por papel, painel central que cadastra escritórios, dono gerindo a própria equipe (usuários e credenciais de OAB), **isolamento** (cada advogado vê só as suas intimações), **compartilhamento** de uma publicação com um colega do mesmo escritório e **log de auditoria** (quem fez o quê, e quando).
+5. ✅ **Fase 3 — autenticação e multi-inquilino**: login por e-mail+senha, app inteiro atrás do login com navegação por papel, painel central que cadastra escritórios, dono gerindo a própria equipe, clientes/processos/prazos isolados por `teamId`, publicações DJEN com múltiplos destinatários e compartilhamento controlado, além do **log de auditoria**.
 6. 🟡 **Fase 4 — integrações de comunicação** (em andamento): busca de processos pela OAB no DJEN/CNJ (tela *Meus processos*), importação para o banco, **captura automática diária** (cron da Vercel às 08h, região São Paulo) e o **WhatsApp Business** (API oficial da Meta) — recebe pelo webhook (com validação de assinatura), roteia cada conversa para o escritório dono do número, mostra os atendimentos reais na tela (com o relato fático da IA) e **responde pelo chat**, tudo em modo demonstração sem as chaves. Falta só a gestão de modelos (templates) para mensagens fora da janela de 24h.

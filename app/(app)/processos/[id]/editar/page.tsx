@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FormularioProcesso } from "@/components/FormularioProcesso";
 import { atualizarProcesso } from "@/lib/acoes/processos";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Editar processo" };
@@ -13,12 +14,17 @@ export default async function PaginaEditarProcesso({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ erro?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { id } = await params;
   const { erro } = await searchParams;
 
   const [processo, clientes] = await Promise.all([
-    bd.processo.findUnique({ where: { id } }),
-    bd.cliente.findMany({ select: { id: true, nome: true }, orderBy: { nome: "asc" } }),
+    bd.processo.findFirst({ where: { id, teamId: usuario.teamId } }),
+    bd.cliente.findMany({
+      where: { teamId: usuario.teamId },
+      select: { id: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
   ]);
   if (!processo) notFound();
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { criarPrazo } from "@/lib/acoes/prazos";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Novo prazo" };
@@ -11,8 +12,10 @@ export default async function PaginaNovoPrazo({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { erro } = await searchParams;
   const processos = await bd.processo.findMany({
+    where: { teamId: usuario.teamId },
     select: { id: true, numero: true, titulo: true },
     orderBy: { criadoEm: "desc" },
   });

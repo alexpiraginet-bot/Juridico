@@ -3,7 +3,7 @@ import { CartaoKpi } from "@/components/CartaoKpi";
 import { ChipPrazo } from "@/components/ChipPrazo";
 import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { formatarData } from "@/lib/formatar";
 import { COLUNAS_TAREFA, ORDEM_COLUNAS } from "@/lib/opcoes";
 import type { ColunaTarefa } from "@/lib/generated/prisma/enums";
@@ -17,7 +17,7 @@ function saudacaoDe(hora: number): string {
 }
 
 export default async function PaginaDashboard() {
-  const usuario = await exigirUsuario();
+  const usuario = await exigirUsuarioDoEscritorio();
   const teamId = usuario.teamId;
 
   const agora = new Date();
@@ -25,19 +25,17 @@ export default async function PaginaDashboard() {
   const em7 = new Date(hoje.getTime() + 7 * 86_400_000);
   const seteDiasAtras = new Date(agora.getTime() - 7 * 86_400_000);
 
-  // Dispara as duas ondas de consultas JUNTAS (globais da Fase 2 + as do
-  // escritório) e só então espera — antes o segundo Promise.all só começava
-  // depois do primeiro terminar; agora ambas correm em paralelo, cortando uma
-  // ida ao banco na home (todo login cai aqui).
-  const globaisP = Promise.all([
-    bd.processo.count().catch(() => 0),
-    bd.prazo.count({ where: { validado: false, concluido: false } }).catch(() => 0),
+  // Todas as consultas operacionais são carimbadas pelo escritório do usuário.
+  // As duas ondas seguem paralelas para manter a home rápida.
+  const carteiraP = Promise.all([
+    bd.processo.count({ where: { teamId } }).catch(() => 0),
+    bd.prazo.count({ where: { teamId, validado: false, concluido: false } }).catch(() => 0),
     bd.prazo
-      .count({ where: { concluido: false, vencimento: { gte: hoje, lte: em7 } } })
+      .count({ where: { teamId, concluido: false, vencimento: { gte: hoje, lte: em7 } } })
       .catch(() => 0),
     bd.prazo
       .findMany({
-        where: { concluido: false },
+        where: { teamId, concluido: false },
         orderBy: { vencimento: "asc" },
         take: 6,
         include: { processo: { select: { numero: true, titulo: true } } },
@@ -45,7 +43,7 @@ export default async function PaginaDashboard() {
       .catch(() => []),
     bd.prazo
       .findMany({
-        where: { validado: false, concluido: false },
+        where: { teamId, validado: false, concluido: false },
         orderBy: { vencimento: "asc" },
         take: 4,
         include: { processo: { select: { numero: true } } },
@@ -53,20 +51,25 @@ export default async function PaginaDashboard() {
       .catch(() => []),
   ]);
 
-  // Do escritório (isolados por Team) — começa a rodar já, junto das globais.
-  const doTimeP = teamId
-    ? Promise.all([
-        bd.tarefa.groupBy({ by: ["coluna"], where: { teamId }, _count: true }).catch(() => []),
-        bd.intimacao
-          .count({ where: { usuario: { teamId }, criadoEm: { gte: seteDiasAtras } } })
-          .catch(() => 0),
-        bd.conversaWhatsapp.count({ where: { teamId } }).catch(() => 0),
-        bd.minuta.groupBy({ by: ["status"], where: { teamId }, _count: true }).catch(() => []),
-      ])
-    : null;
+  const doTimeP = Promise.all([
+    bd.tarefa.groupBy({ by: ["coluna"], where: { teamId }, _count: true }).catch(() => []),
+    bd.intimacao
+      .count({
+        where: {
+          criadoEm: { gte: seteDiasAtras },
+          OR: [
+            { destinatarios: { some: { usuario: { teamId } } } },
+            { usuario: { teamId } }, // compatibilidade com capturas anteriores à migração
+          ],
+        },
+      })
+      .catch(() => 0),
+    bd.conversaWhatsapp.count({ where: { teamId } }).catch(() => 0),
+    bd.minuta.groupBy({ by: ["status"], where: { teamId }, _count: true }).catch(() => []),
+  ]);
 
   const [processosAtivos, prazosAValidar, prazosAVencer, prazosProximos, aValidarLista] =
-    await globaisP;
+    await carteiraP;
 
   const tarefasPorColuna: Record<ColunaTarefa, number> = {
     A_FAZER: 0,
@@ -77,13 +80,11 @@ export default async function PaginaDashboard() {
   const minutasPorStatus: Record<string, number> = {};
   let intimacoesNovas = 0;
   let conversas = 0;
-  if (doTimeP) {
-    const [grpTarefas, intims, convs, grpMinutas] = await doTimeP;
-    for (const g of grpTarefas) tarefasPorColuna[g.coluna] = g._count;
-    for (const g of grpMinutas) minutasPorStatus[g.status] = g._count;
-    intimacoesNovas = intims;
-    conversas = convs;
-  }
+  const [grpTarefas, intims, convs, grpMinutas] = await doTimeP;
+  for (const g of grpTarefas) tarefasPorColuna[g.coluna] = g._count;
+  for (const g of grpMinutas) minutasPorStatus[g.status] = g._count;
+  intimacoesNovas = intims;
+  conversas = convs;
   const tarefasAbertas =
     tarefasPorColuna.A_FAZER + tarefasPorColuna.EM_ANDAMENTO + tarefasPorColuna.EM_REVISAO;
   const minutasAprovadas = minutasPorStatus.APROVADA ?? 0;

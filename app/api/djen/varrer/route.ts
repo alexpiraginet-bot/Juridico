@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { bd } from "@/lib/bd";
 import { importarIntimacoes } from "@/lib/djen/importar";
 import { janelaPadrao } from "@/lib/djen/comunica";
+import { mapearEmLotes } from "@/lib/async/lotes";
 
 export const dynamic = "force-dynamic";
 export const preferredRegion = "gru1";
@@ -57,12 +58,18 @@ export async function GET(request: Request) {
     );
   }
 
-  // Uma credencial por vez (dedup no banco garante que não repete).
-  const resultados = [];
-  for (const alvo of alvos) {
-    const r = await importarIntimacoes(alvo.oab, alvo.uf, alvo.usuarioId);
-    resultados.push({ oab: alvo.oab, uf: alvo.uf, ...r });
-  }
+  const concorrencia = Math.max(
+    1,
+    Math.min(Number(process.env.DJEN_CONCORRENCIA ?? "3") || 3, 5),
+  );
+  const maxPaginas = Math.max(
+    1,
+    Math.min(Number(process.env.DJEN_MAX_PAGINAS ?? "15") || 15, 25),
+  );
+  const resultados = await mapearEmLotes(alvos, concorrencia, async (alvo) => {
+    const r = await importarIntimacoes(alvo.oab, alvo.uf, alvo.usuarioId, { maxPaginas });
+    return { oab: alvo.oab, uf: alvo.uf, ...r };
+  });
 
   const novas = resultados.reduce((s, r) => s + ("novas" in r ? r.novas : 0), 0);
   // Reporta a janela varrida (fuso de Brasília) — se um dia faltar uma
@@ -71,6 +78,8 @@ export async function GET(request: Request) {
     ok: true,
     janela: janelaPadrao(),
     credenciaisVarridas: alvos.length,
+    concorrencia,
+    maxPaginas,
     novas,
     resultados,
   });

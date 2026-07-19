@@ -7,14 +7,17 @@
  * POST — mensagens recebidas. Validamos a assinatura (HMAC do App Secret)
  *        e gravamos no banco (dedup garante que nada entra duas vezes).
  *
- * Responde 200 mesmo em erro nosso de gravação: o Meta reentrega em cima de
- * 4xx/5xx, e a dedup já protege contra duplicatas. Sem o App Secret, roda em
- * modo aberto (só para testes) — em produção, configure WHATSAPP_APP_SECRET.
+ * Em erro transitório de gravação, responde 503 para a Meta reentregar; a
+ * deduplicação torna a repetição segura. Em produção, assinatura é obrigatória
+ * e a rota falha fechada se WHATSAPP_APP_SECRET estiver ausente.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { processarEventoWhatsapp } from "@/lib/whatsapp/receber";
+import {
+  assinaturaWhatsappConfere,
+  assinaturaWhatsappObrigatoria,
+} from "@/lib/whatsapp/assinatura";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,21 +36,15 @@ export function GET(request: Request) {
   return new NextResponse("token de verificação inválido", { status: 403 });
 }
 
-function assinaturaConfere(corpo: string, cabecalho: string | null): boolean {
-  const segredo = process.env.WHATSAPP_APP_SECRET;
-  if (!segredo) return true; // sem App Secret: modo aberto (só testes)
-  if (!cabecalho) return false;
-  const esperada = "sha256=" + createHmac("sha256", segredo).update(corpo).digest("hex");
-  const a = Buffer.from(cabecalho);
-  const b = Buffer.from(esperada);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 export async function POST(request: Request) {
   // Precisamos do corpo CRU para conferir a assinatura (byte a byte).
   const corpo = await request.text();
 
-  if (!assinaturaConfere(corpo, request.headers.get("x-hub-signature-256"))) {
+  const permitirSemAssinatura = !assinaturaWhatsappObrigatoria();
+  if (
+    !permitirSemAssinatura &&
+    !assinaturaWhatsappConfere(corpo, request.headers.get("x-hub-signature-256"))
+  ) {
     return NextResponse.json({ ok: false, erro: "assinatura inválida" }, { status: 401 });
   }
 
@@ -61,9 +58,13 @@ export async function POST(request: Request) {
   try {
     const r = await processarEventoWhatsapp(evento);
     return NextResponse.json({ ok: true, ...r });
-  } catch {
-    // Erro nosso ao gravar: responde 200 para o Meta não reentregar em loop;
-    // a dedup cobre uma eventual reentrega quando o banco voltar.
-    return NextResponse.json({ ok: true, gravado: false });
+  } catch (erro) {
+    console.error("whatsapp.webhook.persistencia_falhou", {
+      erro: erro instanceof Error ? erro.message : "erro desconhecido",
+    });
+    return NextResponse.json(
+      { ok: false, gravado: false, retry: true },
+      { status: 503, headers: { "Retry-After": "30" } },
+    );
   }
 }

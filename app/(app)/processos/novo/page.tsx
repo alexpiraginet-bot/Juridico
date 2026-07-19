@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FormularioProcesso } from "@/components/FormularioProcesso";
 import { criarProcesso } from "@/lib/acoes/processos";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Novo processo" };
@@ -12,8 +13,10 @@ export default async function PaginaNovoProcesso({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { erro } = await searchParams;
   const clientes = await bd.cliente.findMany({
+    where: { teamId: usuario.teamId },
     select: { id: true, nome: true },
     orderBy: { nome: "asc" },
   });

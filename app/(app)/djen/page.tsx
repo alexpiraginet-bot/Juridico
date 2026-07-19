@@ -27,7 +27,11 @@ function dataDjen(iso: string): string {
 // configurado, a busca ao DJEN continua funcionando (degrada com elegância).
 async function contarSalvas(usuarioId: string): Promise<number> {
   try {
-    return await bd.intimacao.count({ where: { usuarioId } });
+    return await bd.intimacao.count({
+      where: {
+        OR: [{ destinatarios: { some: { usuarioId } } }, { usuarioId }],
+      },
+    });
   } catch {
     return 0;
   }
