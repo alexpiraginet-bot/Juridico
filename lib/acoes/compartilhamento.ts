@@ -37,9 +37,16 @@ export async function compartilharIntimacao(dados: FormData) {
   } else if (!usuario.teamId) {
     erro = "Você não está vinculado a um escritório.";
   } else {
-    // Só o dono compartilha; o destinatário tem de ser da mesma equipe.
+    // Todo destinatário direto da publicação pode compartilhar; o usuário
+    // legado continua aceito durante o rollout. O colega deve ser do Team.
     const dono = await bd.intimacao.findFirst({
-      where: { id: intimacaoId, usuarioId: usuario.id },
+      where: {
+        id: intimacaoId,
+        OR: [
+          { destinatarios: { some: { usuarioId: usuario.id } } },
+          { usuarioId: usuario.id },
+        ],
+      },
       select: { numeroProcesso: true },
     });
     const colega = await bd.usuario.findFirst({
@@ -84,9 +91,15 @@ export async function revogarCompartilhamento(dados: FormData) {
   const destinatarioId = texto(dados, "destinatarioId");
   const destino = `/intimacoes/${intimacaoId}`;
 
-  // Só o dono revoga — o filtro pela intimação do usuário garante isso.
+  // Só um destinatário direto revoga — o filtro garante isso.
   const dono = await bd.intimacao.findFirst({
-    where: { id: intimacaoId, usuarioId: usuario.id },
+    where: {
+      id: intimacaoId,
+      OR: [
+        { destinatarios: { some: { usuarioId: usuario.id } } },
+        { usuarioId: usuario.id },
+      ],
+    },
     select: { id: true },
   });
   let revogado: string | null = null;

@@ -12,6 +12,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { bd } from "@/lib/bd";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
+import { registrarAuditoria } from "@/lib/auditoria";
 
 function texto(dados: FormData, campo: string): string {
   return String(dados.get(campo) ?? "").trim();
@@ -23,12 +25,13 @@ function opcional(dados: FormData, campo: string): string | null {
 
 function traduzErro(erro: unknown): string {
   if ((erro as { code?: string }).code === "P2002") {
-    return "Já existe um cliente com esse CPF/CNPJ.";
+    return "Já existe um cliente com esse CPF/CNPJ neste escritório.";
   }
   return "Não foi possível salvar — verifique a conexão com o banco.";
 }
 
 export async function criarCliente(dados: FormData) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const nome = texto(dados, "nome");
   const cpfCnpj = texto(dados, "cpfCnpj");
 
@@ -44,7 +47,15 @@ export async function criarCliente(dados: FormData) {
           email: opcional(dados, "email"),
           telefone: opcional(dados, "telefone"),
           cidade: opcional(dados, "cidade"),
+          teamId: usuario.teamId,
         },
+      });
+      await registrarAuditoria({
+        usuarioId: usuario.id,
+        usuarioNome: usuario.nome,
+        teamId: usuario.teamId,
+        acao: "cliente.criado",
+        detalhe: `cadastrou o cliente "${nome}"`,
       });
     } catch (excecao) {
       erro = traduzErro(excecao);
@@ -57,6 +68,7 @@ export async function criarCliente(dados: FormData) {
 }
 
 export async function atualizarCliente(id: string, dados: FormData) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const nome = texto(dados, "nome");
   const cpfCnpj = texto(dados, "cpfCnpj");
 
@@ -65,8 +77,8 @@ export async function atualizarCliente(id: string, dados: FormData) {
     erro = "Nome e CPF/CNPJ são obrigatórios.";
   } else {
     try {
-      await bd.cliente.update({
-        where: { id },
+      const atualizado = await bd.cliente.updateMany({
+        where: { id, teamId: usuario.teamId },
         data: {
           nome,
           cpfCnpj,
@@ -74,6 +86,14 @@ export async function atualizarCliente(id: string, dados: FormData) {
           telefone: opcional(dados, "telefone"),
           cidade: opcional(dados, "cidade"),
         },
+      });
+      if (atualizado.count === 0) throw new Error("Cliente fora do escritório.");
+      await registrarAuditoria({
+        usuarioId: usuario.id,
+        usuarioNome: usuario.nome,
+        teamId: usuario.teamId,
+        acao: "cliente.atualizado",
+        detalhe: `atualizou o cliente "${nome}"`,
       });
     } catch (excecao) {
       erro = traduzErro(excecao);
@@ -86,8 +106,21 @@ export async function atualizarCliente(id: string, dados: FormData) {
 }
 
 export async function excluirCliente(id: string) {
+  const usuario = await exigirUsuarioDoEscritorio();
   try {
-    await bd.cliente.delete({ where: { id } });
+    const cliente = await bd.cliente.findFirst({
+      where: { id, teamId: usuario.teamId },
+      select: { nome: true },
+    });
+    if (!cliente) redirect("/clientes");
+    await bd.cliente.deleteMany({ where: { id, teamId: usuario.teamId } });
+    await registrarAuditoria({
+      usuarioId: usuario.id,
+      usuarioNome: usuario.nome,
+      teamId: usuario.teamId,
+      acao: "cliente.excluido",
+      detalhe: `excluiu o cliente "${cliente.nome}"`,
+    });
   } catch (excecao) {
     const mensagem =
       (excecao as { code?: string }).code === "P2003"

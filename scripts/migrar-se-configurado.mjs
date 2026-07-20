@@ -1,6 +1,7 @@
 /*
- * Roda as migrações do banco antes do build na Vercel — mas só se o
- * DATABASE_URL existir.
+ * Roda migrações como uma etapa explícita, antes da promoção do deployment.
+ * Nunca é chamado automaticamente pelo build de preview/produção: isso evita
+ * dois builds concorrentes disputarem DDL e impede preview de tocar produção.
  *
  * - Em produção sem banco configurado: falha de propósito, com uma
  *   mensagem clara (criar o banco no painel é pré-requisito).
@@ -10,15 +11,9 @@
 
 import { execSync } from "node:child_process";
 
-if (process.env.DATABASE_URL) {
+if (process.env.DIRECT_URL || process.env.DATABASE_URL) {
   execSync("npx prisma migrate deploy", { stdio: "inherit" });
-} else if (process.env.VERCEL_ENV === "production") {
-  console.error(
-    "✖ DATABASE_URL ausente em produção — no painel da Vercel, crie o banco em Storage e conecte ao projeto.",
-  );
-  process.exit(1);
 } else {
-  console.warn(
-    "⚠ DATABASE_URL ausente — migrações puladas; as telas de banco ficarão indisponíveis até o banco ser criado.",
-  );
+  console.error("✖ DIRECT_URL/DATABASE_URL ausente — migração não executada.");
+  process.exit(1);
 }

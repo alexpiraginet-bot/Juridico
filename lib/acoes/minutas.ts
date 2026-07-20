@@ -31,8 +31,8 @@ export async function gerarMinuta(processoId: string, instrucoes: string): Promi
     return { ok: false, erro: "IA não configurada — defina a variável ANTHROPIC_API_KEY." };
   }
 
-  const processo = await bd.processo.findUnique({
-    where: { id: processoId },
+  const processo = await bd.processo.findFirst({
+    where: { id: processoId, teamId: usuario.teamId },
     include: {
       cliente: true,
       prazos: { where: { concluido: false }, orderBy: { vencimento: "asc" } },

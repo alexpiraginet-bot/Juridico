@@ -22,6 +22,9 @@ O app em `app/` é a versão estruturada dele.
 npm run dev          # desenvolvimento em http://localhost:3000 (exige DATABASE_URL no .env)
 npm run build        # build de produção (também checa os tipos)
 npm run typecheck    # só a checagem de tipos
+npm test             # testes automatizados
+npm run check        # tipos + testes + build
+npm run db:migrate   # migração explícita antes de promover um deploy
 npx prisma db seed   # semeia o banco com os dados do protótipo (idempotente)
 npx prisma migrate dev --name <nome>  # nova migração após mudar o schema
 ```
@@ -54,6 +57,10 @@ API Pública do DataJud/CNJ para jurisprudência (`lib/juris/datajud.ts`).
   via `bd` (`lib/bd.ts`) e escrita só por server actions em `lib/acoes/`
   (validar → gravar → `revalidatePath` → `redirect`; erro volta por
   `?erro=` na URL). Enums do banco são traduzidos em `lib/opcoes.ts`.
+- Toda leitura/escrita de cliente, processo e prazo exige `teamId`; relações
+  compostas no Prisma impedem ligar registros de escritórios diferentes.
+- Build da Vercel nunca executa migrações. O rollout é migração explícita →
+  validação → promoção do preview, usando `DIRECT_URL` para DDL.
 - **IA e APIs externas rodam só no servidor** (`lib/ia.ts`,
   `lib/juris/datajud.ts`): segredos em variáveis de ambiente, nunca no
   cliente. Toda integração externa **degrada com elegância** — sem a

@@ -19,7 +19,7 @@ import { registrarAuditoria } from "@/lib/auditoria";
 import { importarIntimacoes } from "@/lib/djen/importar";
 
 // Ação de formulário: importa e volta para /djen com o resultado na URL.
-// As intimações ficam com o dono = usuário logado (isolamento).
+// O usuário logado entra como destinatário direto da publicação.
 export async function acaoImportarIntimacoes(dados: FormData) {
   const usuario = await exigirUsuario();
   const oab = String(dados.get("oab") ?? "").replace(/\D/g, "");
@@ -75,6 +75,19 @@ export async function acaoAbrirIntimacao(dados: FormData) {
       oab: campo("oab"),
       uf: campo("uf"),
       usuarioId: usuario.id,
+    },
+  });
+
+  await bd.destinatarioIntimacao.upsert({
+    where: {
+      intimacaoId_usuarioId: { intimacaoId: registro.id, usuarioId: usuario.id },
+    },
+    update: { oab: campo("oab"), uf: campo("uf") },
+    create: {
+      intimacaoId: registro.id,
+      usuarioId: usuario.id,
+      oab: campo("oab"),
+      uf: campo("uf"),
     },
   });
 

@@ -14,9 +14,16 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const bd = new PrismaClient({ adapter });
 
 async function semear() {
+  const equipe = await bd.team.upsert({
+    where: { id: "lexflow_demo_team" },
+    update: {},
+    create: { id: "lexflow_demo_team", nome: "Escritório LexFlow Demo" },
+  });
+  const teamId = equipe.id;
+
   /* ---- Clientes ---- */
   const maria = await bd.cliente.upsert({
-    where: { cpfCnpj: "111.222.333-44" },
+    where: { teamId_cpfCnpj: { teamId, cpfCnpj: "111.222.333-44" } },
     update: {},
     create: {
       nome: "Maria Santos",
@@ -24,10 +31,11 @@ async function semear() {
       email: "maria.santos@email.com",
       telefone: "(27) 99911-2233",
       cidade: "Vitória/ES",
+      teamId,
     },
   });
   const joao = await bd.cliente.upsert({
-    where: { cpfCnpj: "555.666.777-88" },
+    where: { teamId_cpfCnpj: { teamId, cpfCnpj: "555.666.777-88" } },
     update: {},
     create: {
       nome: "João Pereira",
@@ -35,10 +43,11 @@ async function semear() {
       email: "jpereira@email.com",
       telefone: "(27) 98822-4455",
       cidade: "Vitória/ES",
+      teamId,
     },
   });
   const transportes = await bd.cliente.upsert({
-    where: { cpfCnpj: "12.345.678/0001-90" },
+    where: { teamId_cpfCnpj: { teamId, cpfCnpj: "12.345.678/0001-90" } },
     update: {},
     create: {
       nome: "Transportes Vitória Ltda.",
@@ -46,10 +55,11 @@ async function semear() {
       email: "juridico@transportesvitoria.com.br",
       telefone: "(27) 3322-1100",
       cidade: "Serra/ES",
+      teamId,
     },
   });
   const helena = await bd.cliente.upsert({
-    where: { cpfCnpj: "999.888.777-66" },
+    where: { teamId_cpfCnpj: { teamId, cpfCnpj: "999.888.777-66" } },
     update: {},
     create: {
       nome: "Helena Costa",
@@ -57,12 +67,13 @@ async function semear() {
       email: "helena.costa@email.com",
       telefone: "(27) 99755-6677",
       cidade: "Vila Velha/ES",
+      teamId,
     },
   });
 
   /* ---- Processos ---- */
   const cobranca = await bd.processo.upsert({
-    where: { numero: "0801234-55.2026.8.08.0024" },
+    where: { teamId_numero: { teamId, numero: "0801234-55.2026.8.08.0024" } },
     update: {},
     create: {
       numero: "0801234-55.2026.8.08.0024",
@@ -73,10 +84,11 @@ async function semear() {
       ultimoEvento: "Citação capturada do DJEN — contestar até 31/07",
       valorCausa: 85_000,
       clienteId: joao.id,
+      teamId,
     },
   });
   const trabalhista = await bd.processo.upsert({
-    where: { numero: "0805566-21.2026.5.17.0004" },
+    where: { teamId_numero: { teamId, numero: "0805566-21.2026.5.17.0004" } },
     update: {},
     create: {
       numero: "0805566-21.2026.5.17.0004",
@@ -87,10 +99,11 @@ async function semear() {
       ultimoEvento: "Audiência de instrução designada para 13/07",
       valorCausa: 120_000,
       clienteId: transportes.id,
+      teamId,
     },
   });
   const divorcio = await bd.processo.upsert({
-    where: { numero: "0803344-12.2025.8.08.0035" },
+    where: { teamId_numero: { teamId, numero: "0803344-12.2025.8.08.0035" } },
     update: {},
     create: {
       numero: "0803344-12.2025.8.08.0035",
@@ -101,10 +114,11 @@ async function semear() {
       ultimoEvento: "Sentença procedente publicada em 02/07",
       valorCausa: 350_000,
       clienteId: helena.id,
+      teamId,
     },
   });
   const recurso = await bd.processo.upsert({
-    where: { numero: "0808877-90.2025.5.17.0141" },
+    where: { teamId_numero: { teamId, numero: "0808877-90.2025.5.17.0141" } },
     update: {},
     create: {
       numero: "0808877-90.2025.5.17.0141",
@@ -115,6 +129,7 @@ async function semear() {
       ultimoEvento: "Contrarrazões protocoladas",
       valorCausa: 58_000,
       clienteId: transportes.id,
+      teamId,
     },
   });
 
@@ -127,6 +142,7 @@ async function semear() {
       validado: false, // sugerido pela IA — aguarda validação humana
       concluido: false,
       processoId: cobranca.id,
+      teamId,
     },
     {
       descricao: "Contrarrazões de apelação",
@@ -135,6 +151,7 @@ async function semear() {
       validado: true,
       concluido: false,
       processoId: recurso.id,
+      teamId,
     },
     {
       descricao: "Manifestação sobre laudo pericial",
@@ -143,6 +160,7 @@ async function semear() {
       validado: true,
       concluido: false,
       processoId: trabalhista.id,
+      teamId,
     },
     {
       descricao: "Juntada de procuração",
@@ -151,6 +169,7 @@ async function semear() {
       validado: true,
       concluido: true,
       processoId: cobranca.id,
+      teamId,
     },
     {
       descricao: "Comunicar cliente sobre a sentença",
@@ -159,20 +178,21 @@ async function semear() {
       validado: true,
       concluido: false,
       processoId: divorcio.id,
+      teamId,
     },
   ];
 
   for (const prazo of prazos) {
     const existente = await bd.prazo.findFirst({
-      where: { processoId: prazo.processoId, descricao: prazo.descricao },
+      where: { processoId: prazo.processoId, teamId, descricao: prazo.descricao },
     });
     if (!existente) await bd.prazo.create({ data: prazo });
   }
 
   const totais = {
-    clientes: await bd.cliente.count(),
-    processos: await bd.processo.count(),
-    prazos: await bd.prazo.count(),
+    clientes: await bd.cliente.count({ where: { teamId } }),
+    processos: await bd.processo.count({ where: { teamId } }),
+    prazos: await bd.prazo.count({ where: { teamId } }),
   };
   console.log("Semente aplicada:", totais);
 }

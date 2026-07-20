@@ -4,6 +4,7 @@ import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { ChipPrazo } from "@/components/ChipPrazo";
 import { Selo } from "@/components/Selo";
 import { concluirPrazo, excluirPrazo, validarPrazo } from "@/lib/acoes/prazos";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 import { formatarData } from "@/lib/formatar";
 import { CalendarioPrazos, mesDeHoje } from "@/components/CalendarioPrazos";
@@ -16,10 +17,12 @@ export default async function PaginaPrazos({
 }: {
   searchParams: Promise<{ erro?: string; vista?: string; mes?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { erro, vista, mes } = await searchParams;
   const ehCalendario = vista === "calendario";
   const mesAtual = /^\d{4}-\d{2}$/.test(mes ?? "") ? (mes as string) : mesDeHoje();
   const prazos = await bd.prazo.findMany({
+    where: { teamId: usuario.teamId },
     include: { processo: { select: { numero: true, titulo: true } } },
     orderBy: { vencimento: "asc" },
   });

@@ -40,10 +40,12 @@ export async function criarTarefa(dados: FormData) {
 
   if (!titulo) redirect(erroUrl("Dê um título à tarefa."));
 
-  // O responsável precisa ser do mesmo escritório (a tarefa é do Team). Os
-  // processos são globais (tabela da Fase 2, sem inquilino) — basta existir.
+  // Responsável e processo precisam pertencer ao mesmo escritório da tarefa.
   if (processoId) {
-    const p = await bd.processo.findFirst({ where: { id: processoId }, select: { id: true } });
+    const p = await bd.processo.findFirst({
+      where: { id: processoId, teamId },
+      select: { id: true },
+    });
     if (!p) redirect(erroUrl("Processo inválido."));
   }
   if (responsavelId) {

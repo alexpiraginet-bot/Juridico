@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { Selo } from "@/components/Selo";
 import { bd } from "@/lib/bd";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { criarTarefa, moverTarefa, excluirTarefa } from "@/lib/acoes/tarefas";
 import { COLUNAS_TAREFA, ORDEM_COLUNAS, PRIORIDADES_TAREFA } from "@/lib/opcoes";
 import type { ColunaTarefa } from "@/lib/generated/prisma/enums";
@@ -18,19 +18,8 @@ export default async function PaginaTarefas({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
-  const usuario = await exigirUsuario();
+  const usuario = await exigirUsuarioDoEscritorio();
   const { erro } = await searchParams;
-
-  if (!usuario.teamId) {
-    return (
-      <div>
-        <h1 className="text-lg font-bold text-navy">Tarefas &amp; Fluxos</h1>
-        <p className="mt-2 text-[12.5px] text-suave">
-          Entre com um usuário de escritório para ver e criar tarefas.
-        </p>
-      </div>
-    );
-  }
   const teamId = usuario.teamId;
 
   const [tarefas, processos, usuarios] = await Promise.all([
@@ -43,6 +32,7 @@ export default async function PaginaTarefas({
       },
     }),
     bd.processo.findMany({
+      where: { teamId },
       orderBy: { criadoEm: "desc" },
       select: { id: true, numero: true, titulo: true },
     }),

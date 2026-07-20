@@ -20,9 +20,16 @@ function dataDjen(iso: string | null): string {
 async function carregarIntimacoes(usuarioId: string) {
   return bd.intimacao.findMany({
     where: {
-      OR: [{ usuarioId }, { compartilhamentos: { some: { usuarioId } } }],
+      OR: [
+        { destinatarios: { some: { usuarioId } } },
+        { usuarioId },
+        { compartilhamentos: { some: { usuarioId } } },
+      ],
     },
-    include: { usuario: { select: { nome: true } } },
+    include: {
+      usuario: { select: { nome: true } },
+      destinatarios: { where: { usuarioId }, select: { id: true } },
+    },
     orderBy: [{ dataDisponibilizacao: "desc" }, { criadoEm: "desc" }],
     take: 100,
   });
@@ -84,7 +91,8 @@ export default async function PaginaIntimacoes() {
         <ul className="space-y-2.5">
           {intimacoes.map((it) => {
             // Recebida = de outro dono, compartilhada comigo.
-            const recebida = it.usuarioId !== usuario.id;
+            const ehDestinatario = it.usuarioId === usuario.id || it.destinatarios.length > 0;
+            const recebida = !ehDestinatario;
             return (
             <li key={it.id}>
               <Link

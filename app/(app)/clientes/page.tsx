@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { excluirCliente } from "@/lib/acoes/clientes";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Clientes" };
@@ -12,8 +13,10 @@ export default async function PaginaClientes({
 }: {
   searchParams: Promise<{ erro?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { erro } = await searchParams;
   const clientes = await bd.cliente.findMany({
+    where: { teamId: usuario.teamId },
     orderBy: { nome: "asc" },
     include: { _count: { select: { processos: true } } },
   });

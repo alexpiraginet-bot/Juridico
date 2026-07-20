@@ -104,6 +104,16 @@ export async function exigirUsuario(): Promise<UsuarioLogado> {
   return u;
 }
 
+// Toda tela operacional pertence a um escritório. Além de reduzir repetição,
+// este guard impede que um SUPERADMIN sem Team consulte acidentalmente dados
+// globais: administração da plataforma continua em /central; carteira jurídica
+// sempre exige um tenant explícito.
+export async function exigirUsuarioDoEscritorio(): Promise<UsuarioLogado & { teamId: string }> {
+  const u = await exigirUsuario();
+  if (!u.teamId) redirect(u.papel === "SUPERADMIN" ? "/central" : "/entrar");
+  return u as UsuarioLogado & { teamId: string };
+}
+
 export async function exigirSuperadmin(): Promise<UsuarioLogado> {
   const u = await usuarioAtual();
   if (!u) redirect("/entrar");

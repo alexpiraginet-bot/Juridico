@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { bd } from "@/lib/bd";
-import { exigirUsuario } from "@/lib/auth";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { iaConfigurada } from "@/lib/ia";
 import type { MinutaSalva } from "@/lib/acoes/minutas";
 import { PainelMinutas } from "./PainelMinutas";
@@ -12,22 +12,24 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export default async function PaginaMinutas() {
-  const usuario = await exigirUsuario();
+  const usuario = await exigirUsuarioDoEscritorio();
 
   const [processos, minutasSalvas] = await Promise.all([
     bd.processo
-      .findMany({ select: { id: true, numero: true, titulo: true }, orderBy: { criadoEm: "desc" } })
+      .findMany({
+        where: { teamId: usuario.teamId },
+        select: { id: true, numero: true, titulo: true },
+        orderBy: { criadoEm: "desc" },
+      })
       .catch(() => []),
-    usuario.teamId
-      ? bd.minuta
-          .findMany({
-            where: { teamId: usuario.teamId },
-            orderBy: { atualizadoEm: "desc" },
-            take: 30,
-            select: { id: true, titulo: true, teor: true, status: true },
-          })
-          .catch(() => [] as MinutaSalva[])
-      : ([] as MinutaSalva[]),
+    bd.minuta
+      .findMany({
+        where: { teamId: usuario.teamId },
+        orderBy: { atualizadoEm: "desc" },
+        take: 30,
+        select: { id: true, titulo: true, teor: true, status: true },
+      })
+      .catch(() => [] as MinutaSalva[]),
   ]);
 
   return (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FormularioCliente } from "@/components/FormularioCliente";
 import { atualizarCliente } from "@/lib/acoes/clientes";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 
 export const metadata: Metadata = { title: "Editar cliente" };
@@ -13,10 +14,11 @@ export default async function PaginaEditarCliente({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ erro?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { id } = await params;
   const { erro } = await searchParams;
 
-  const cliente = await bd.cliente.findUnique({ where: { id } });
+  const cliente = await bd.cliente.findFirst({ where: { id, teamId: usuario.teamId } });
   if (!cliente) notFound();
 
   return (

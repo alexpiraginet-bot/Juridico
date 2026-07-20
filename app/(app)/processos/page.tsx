@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BotaoExcluir } from "@/components/BotaoExcluir";
 import { Selo } from "@/components/Selo";
 import { excluirProcesso } from "@/lib/acoes/processos";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 import { formatarMoeda } from "@/lib/formatar";
 import { AreaProcesso } from "@/lib/generated/prisma/enums";
@@ -16,29 +17,31 @@ export default async function PaginaProcessos({
 }: {
   searchParams: Promise<{ area?: string; busca?: string; erro?: string }>;
 }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { area, busca: buscaBruta, erro } = await searchParams;
   const areaFiltrada =
     area && area in AreaProcesso ? (area as AreaProcesso) : undefined;
   const busca = (buscaBruta ?? "").trim();
 
   const filtro: {
+    teamId: string;
     area?: AreaProcesso;
     numero?: { contains: string; mode: "insensitive" };
-  } = {};
+  } = { teamId: usuario.teamId };
   if (areaFiltrada) filtro.area = areaFiltrada;
   if (busca) filtro.numero = { contains: busca, mode: "insensitive" };
 
   const [processos, contagemPorArea, total] = await Promise.all([
     bd.processo.findMany({
-      where: Object.keys(filtro).length ? filtro : undefined,
+      where: filtro,
       include: {
         cliente: { select: { nome: true } },
         _count: { select: { prazos: true } },
       },
       orderBy: { criadoEm: "desc" },
     }),
-    bd.processo.groupBy({ by: ["area"], _count: { _all: true } }),
-    bd.processo.count(),
+    bd.processo.groupBy({ by: ["area"], where: { teamId: usuario.teamId }, _count: { _all: true } }),
+    bd.processo.count({ where: { teamId: usuario.teamId } }),
   ]);
 
   return (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Selo } from "@/components/Selo";
 import { SeloIA } from "@/components/SeloIA";
+import { exigirUsuarioDoEscritorio } from "@/lib/auth";
 import { bd } from "@/lib/bd";
 import { formatarData, formatarMoeda } from "@/lib/formatar";
 import { AREAS, seloDaFase } from "@/lib/opcoes";
@@ -179,10 +180,11 @@ async function BlocoProcessual({ numero }: { numero: string }) {
 }
 
 export default async function PaginaProcesso({ params }: { params: Promise<{ id: string }> }) {
+  const usuario = await exigirUsuarioDoEscritorio();
   const { id } = await params;
 
-  const processo = await bd.processo.findUnique({
-    where: { id },
+  const processo = await bd.processo.findFirst({
+    where: { id, teamId: usuario.teamId },
     include: {
       cliente: { select: { nome: true } },
       prazos: { where: { concluido: false }, orderBy: { vencimento: "asc" } },
@@ -194,7 +196,18 @@ export default async function PaginaProcesso({ params }: { params: Promise<{ id:
 
   // Intimações já salvas (DJEN) — consulta rápida ao banco, entra no primeiro paint.
   const intimacoes = await bd.intimacao
-    .findMany({ where: { numeroProcesso: processo.numero }, orderBy: { dataDisponibilizacao: "desc" }, take: 10 })
+    .findMany({
+      where: {
+        numeroProcesso: processo.numero,
+        OR: [
+          { destinatarios: { some: { usuarioId: usuario.id } } },
+          { usuarioId: usuario.id },
+          { compartilhamentos: { some: { usuarioId: usuario.id } } },
+        ],
+      },
+      orderBy: { dataDisponibilizacao: "desc" },
+      take: 10,
+    })
     .catch(() => [] as Awaited<ReturnType<typeof bd.intimacao.findMany>>);
 
   return (

@@ -35,32 +35,42 @@ enum FaseProcesso {
 model Cliente {
   id        String     @id @default(cuid())
   nome      String
-  cpfCnpj   String     @unique @map("cpf_cnpj")
+  cpfCnpj   String     @map("cpf_cnpj")
   email     String?
   telefone  String?
   cidade    String?
+  teamId    String     @map("team_id")
+  team      Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
   criadoEm  DateTime   @default(now()) @map("criado_em")
   processos Processo[]
 
+  @@unique([id, teamId])
+  @@unique([teamId, cpfCnpj])
+  @@index([teamId, nome])
   @@map("clientes")
 }
 
 model Processo {
   id           String       @id @default(cuid())
-  numero       String       @unique // numeração única do CNJ
+  numero       String // numeração CNJ, única dentro do escritório
   titulo       String
   area         AreaProcesso
   tribunal     String?
   fase         FaseProcesso @default(CONHECIMENTO)
   ultimoEvento String?      @map("ultimo_evento")
   valorCausa   Decimal?     @map("valor_causa") @db.Decimal(14, 2)
+  teamId       String       @map("team_id")
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   clienteId    String       @map("cliente_id")
-  cliente      Cliente      @relation(fields: [clienteId], references: [id])
+  cliente      Cliente      @relation(fields: [clienteId, teamId], references: [id, teamId])
   prazos       Prazo[]
   tarefas      Tarefa[]
   minutas      Minuta[]
   criadoEm     DateTime     @default(now()) @map("criado_em")
 
+  @@unique([id, teamId])
+  @@unique([teamId, numero])
+  @@index([teamId, area])
   @@map("processos")
 }
 
@@ -73,10 +83,13 @@ model Prazo {
   // agenda oficial depois de validado por um advogado.
   validado    Boolean  @default(false)
   concluido   Boolean  @default(false)
+  teamId      String   @map("team_id")
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   processoId  String   @map("processo_id")
-  processo    Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  processo    Processo @relation(fields: [processoId, teamId], references: [id, teamId], onDelete: Cascade)
   criadoEm    DateTime @default(now()) @map("criado_em")
 
+  @@index([teamId, vencimento])
   @@map("prazos")
 }
 
@@ -87,29 +100,50 @@ model Prazo {
 // passo posterior, feito por uma pessoa. `djenId` é a chave de
 // deduplicação: a mesma publicação nunca entra duas vezes.
 model Intimacao {
-  id                   String   @id @default(cuid())
-  djenId               String   @unique @map("djen_id")
-  numeroProcesso       String   @map("numero_processo")
+  id                   String                      @id @default(cuid())
+  djenId               String                      @unique @map("djen_id")
+  numeroProcesso       String                      @map("numero_processo")
   tribunal             String?
   tipo                 String?
   orgao                String?
   classe               String?
-  resumo               String?  // prévia (para a lista)
-  teor                 String?  // teor COMPLETO da publicação
-  dataDisponibilizacao String?  @map("data_disponibilizacao") // "AAAA-MM-DD", como o DJEN envia
+  resumo               String? // prévia (para a lista)
+  teor                 String? // teor COMPLETO da publicação
+  dataDisponibilizacao String?                     @map("data_disponibilizacao") // "AAAA-MM-DD", como o DJEN envia
   oab                  String?
   uf                   String?
   // Dono da captura (o advogado da OAB varrida) — é o que faz "cada um vê
   // só o seu". Nulo nas capturas antigas, anteriores ao isolamento.
-  usuarioId            String?  @map("usuario_id")
-  usuario              Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  criadoEm             DateTime @default(now()) @map("criado_em")
+  usuarioId            String?                     @map("usuario_id")
+  usuario              Usuario?                    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  criadoEm             DateTime                    @default(now()) @map("criado_em")
   // Com quem o dono compartilhou esta publicação (colegas do mesmo Team).
   compartilhamentos    CompartilhamentoIntimacao[]
+  // Todos os advogados/OABs alcançados pela mesma publicação. Uma publicação
+  // continua única no DJEN, mas pode pertencer a várias carteiras.
+  destinatarios        DestinatarioIntimacao[]
 
   @@index([numeroProcesso])
   @@index([usuarioId])
   @@map("intimacoes")
+}
+
+// Relação N:N entre uma publicação DJEN e os advogados alcançados. Corrige o
+// caso em que a mesma publicação aparece para duas OABs: o texto é guardado
+// uma vez e cada destinatário recebe seu próprio vínculo de acesso.
+model DestinatarioIntimacao {
+  id          String    @id @default(cuid())
+  intimacaoId String    @map("intimacao_id")
+  intimacao   Intimacao @relation(fields: [intimacaoId], references: [id], onDelete: Cascade)
+  usuarioId   String    @map("usuario_id")
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  oab         String?
+  uf          String?
+  criadoEm    DateTime  @default(now()) @map("criado_em")
+
+  @@unique([intimacaoId, usuarioId])
+  @@index([usuarioId, criadoEm])
+  @@map("destinatarios_intimacao")
 }
 
 // Fase 3 — compartilhamento. O dono de uma intimação pode liberar a leitura
@@ -145,20 +179,23 @@ enum PapelUsuario {
 // logo próprios (identidade dentro do app). Nós criamos os Teams no painel
 // central; cada Team cadastra seus próprios usuários.
 model Team {
-  id         String              @id @default(cuid())
-  nome       String
-  logoUrl    String?             @map("logo_url")
+  id                    String              @id @default(cuid())
+  nome                  String
+  logoUrl               String?             @map("logo_url")
   // Número de negócio do WhatsApp deste escritório (id do phone_number_id na
   // Meta). É a chave do roteamento: o webhook liga a conversa recebida ao Team
   // dono deste número. Único — um número pertence a um só escritório.
-  whatsappPhoneNumberId String?  @unique @map("whatsapp_phone_number_id")
-  criadoEm   DateTime            @default(now()) @map("criado_em")
-  usuarios   Usuario[]
-  auditorias RegistroAuditoria[]
-  conversas  ConversaWhatsapp[]
-  modelosWhatsapp ModeloWhatsapp[]
-  tarefas    Tarefa[]
-  minutas    Minuta[]
+  whatsappPhoneNumberId String?             @unique @map("whatsapp_phone_number_id")
+  criadoEm              DateTime            @default(now()) @map("criado_em")
+  usuarios              Usuario[]
+  clientes              Cliente[]
+  processos             Processo[]
+  prazos                Prazo[]
+  auditorias            RegistroAuditoria[]
+  conversas             ConversaWhatsapp[]
+  modelosWhatsapp       ModeloWhatsapp[]
+  tarefas               Tarefa[]
+  minutas               Minuta[]
 
   @@map("teams")
 }
@@ -167,23 +204,24 @@ model Team {
 // SUPERADMIN, que é da plataforma). `senhaHash` guarda o hash (scrypt),
 // nunca a senha em texto.
 model Usuario {
-  id          String          @id @default(cuid())
-  nome        String
-  email       String          @unique
-  senhaHash   String?         @map("senha_hash")
-  papel       PapelUsuario    @default(ADVOGADO)
-  cargo       String?
-  teamId      String?         @map("team_id")
-  team        Team?           @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  criadoEm    DateTime        @default(now()) @map("criado_em")
-  credenciais CredencialOab[]
-  sessoes     Sessao[]
-  intimacoes  Intimacao[]
+  id                     String                      @id @default(cuid())
+  nome                   String
+  email                  String                      @unique
+  senhaHash              String?                     @map("senha_hash")
+  papel                  PapelUsuario                @default(ADVOGADO)
+  cargo                  String?
+  teamId                 String?                     @map("team_id")
+  team                   Team?                       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  criadoEm               DateTime                    @default(now()) @map("criado_em")
+  credenciais            CredencialOab[]
+  sessoes                Sessao[]
+  intimacoes             Intimacao[]
+  intimacoesDestinatario DestinatarioIntimacao[]
   // Publicações que outros donos compartilharam com este usuário.
-  intimacoesRecebidas CompartilhamentoIntimacao[]
-  auditorias          RegistroAuditoria[]
-  conversas           ConversaWhatsapp[]
-  tarefas             Tarefa[]
+  intimacoesRecebidas    CompartilhamentoIntimacao[]
+  auditorias             RegistroAuditoria[]
+  conversas              ConversaWhatsapp[]
+  tarefas                Tarefa[]
 
   @@map("usuarios")
 }
@@ -361,7 +399,7 @@ model Minuta {
   processoId   String?      @map("processo_id")
   processo     Processo?    @relation(fields: [processoId], references: [id], onDelete: SetNull)
   titulo       String
-  teor         String       // texto atual (o advogado edita)
+  teor         String // texto atual (o advogado edita)
   teorIa       String       @map("teor_ia") // o rascunho original da IA
   status       StatusMinuta @default(RASCUNHO_IA)
   autorNome    String?      @map("autor_nome") // quem gerou/editou por último
