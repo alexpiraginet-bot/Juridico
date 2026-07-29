@@ -24,6 +24,13 @@ export default function LayoutRaiz({
           data-app="juridico"
           strategy="lazyOnload"
         />
+        {/* Captação: pílula "Feito pela Lex" → WhatsApp comercial (canto oposto ao suporte). */}
+        <Script
+          src="https://alex-hub-three.vercel.app/lex-cta.js"
+          data-app="juridico"
+          data-label="LexFlow (gestão jurídica)"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
