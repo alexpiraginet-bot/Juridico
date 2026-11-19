@@ -283,7 +283,93 @@ acessibilidade AA, `scrypt` assíncrono.
 
 ---
 
-## 13. Restrições que a V2 NÃO pode quebrar
+## 13. Integrações e APIs disponíveis → o que destravam na V2
+
+> Integrações **reais e já ao alcance** (conectores/MCP e APIs oficiais). Não
+> estão todas plugadas hoje — o mapa liga cada uma a uma capacidade jurídica
+> concreta da V2.
+
+| Integração / API | O que destrava na V2 |
+|---|---|
+| **DocuSign** (assinatura eletrônica) | Procuração, contrato de honorários e acordos **assinados digitalmente**, com trilha, status e lembrete automático. |
+| **Mercado Pago** (pagamentos BR) | Cobrança de honorários por **Pix / boleto / cartão**, faturas e conciliação — nativo do Brasil. |
+| **Mastercard / Open Finance** | Conciliação bancária e verificação de recebimentos (secundário). |
+| **Supabase** (Postgres + Auth + Realtime + Storage + Edge + RLS) | **Tempo real** (atendimentos/dashboard ao vivo), **portal do cliente** (Auth + RLS), **cofre de documentos** (Storage), isolamento multi-inquilino com RLS. |
+| **Vercel** (AI Gateway, Analytics, Feature Flags, Blob, Firewall) | **Rotear/cachear a IA** (AI Gateway), lançar features por escritório (flags), medir uso, blindar rotas. |
+| **Claude / Anthropic API** | O motor de IA: relato, resumo, minuta, copilot, RAG, classificação. |
+| **Google Workspace** (Calendar / Drive / Gmail) | **Sync de prazos** com a agenda, Drive como cofre, **intake por e-mail**. |
+| **WhatsApp** (Meta Cloud API / LetsBot) | Intake agêntico, respostas, templates, campanhas e automações de atendimento. |
+| **Figma** (+ Code Connect) | Design system LEX formal (tokens + componentes) ligado ao código — a fonte visual da marca. |
+| **21st.dev / Lovable / shadcn** | **Acelerar a construção de UI** (componentes prontos, geração guiada) sem perder a identidade. |
+| **Gamma / Canva** | **Propostas e relatórios do cliente** gerados como deck/PDF com a marca LEX. |
+| **Idiolect** | Minutas e mensagens **no tom de voz do escritório**. |
+| **higgsfield / Windsor** (growth) | Peças de marketing e analytics de aquisição (fora do núcleo). |
+
+---
+
+## 14. "Modo melhorado" — a camada visual e de experiência premium
+
+A identidade LEX (feel iOS 26) levada além, numa experiência "pro":
+
+- **Tempo real em tudo** (Supabase Realtime): atendimentos, dashboard, kanban e
+  prazos atualizam ao vivo, sem refresh.
+- **Modo escuro nativo** (os tokens já preparam o terreno) + contraste AA.
+- **Mobile / PWA**: instalável, offline-first nas telas de leitura, push nativo.
+- **Command palette (⌘K)**: abrir processo, criar prazo, buscar cliente, rodar
+  IA — tudo pelo teclado.
+- **Dashboards premium**: charts (sparklines, séries), squircles, glass,
+  micro-interações (molas, toasts slide-up) num padrão de design unificado.
+- **Design system vivo** (Figma ↔ código via Code Connect): a marca LEX como
+  biblioteca de componentes, não só CSS.
+- **Documentos branded automáticos** (Gamma/Canva): proposta comercial,
+  relatório mensal do cliente e capa de processo com a identidade.
+- **Copilot sempre à mão**: painel lateral "pergunte ao LexFlow" em qualquer tela.
+- **Skeletons + streaming** por toda parte (já começou): sensação de instantâneo.
+
+---
+
+## 15. Funções novas a implementar (alto nível — com a API que move cada uma)
+
+Priorizadas por impacto; cada função nomeia a integração que a sustenta.
+
+**Documentos & assinatura**
+- **Gerador de peças/contratos** a partir de template + dados → export .docx/PDF.
+- **Assinatura eletrônica** de procuração/contrato/acordo (**DocuSign**), com
+  status e lembrete.
+- **Cofre de documentos** do processo: upload, **OCR**, versionamento
+  (**Supabase Storage**).
+
+**Financeiro**
+- **Contratos de honorários** (fixo/êxito/mensal) + faturas.
+- **Cobrança e recebimento** por Pix/boleto/cartão (**Mercado Pago**) + conciliação.
+- **Painel financeiro** do escritório (a receber, recebido, inadimplência).
+
+**Agenda, intake e notificações**
+- **Sync de prazos/tarefas** com **Google Calendar**.
+- **Intake por e-mail** (**Gmail**) e por WhatsApp **agêntico** (Claude + Meta/LetsBot).
+- **Notificações escalonadas** (push / e-mail / WhatsApp) para prazo e tarefa.
+
+**IA avançada**
+- **Copilot da carteira** ("pergunte ao LexFlow") — **Claude + RAG** sobre
+  DataJud + base do escritório, sob isolamento e auditoria.
+- **Minutas com citação verificável** (RAG + link à fonte).
+- **Previsão de fase/prazo/risco** a partir dos andamentos.
+- **Redação no tom do escritório** (**Idiolect**).
+
+**Portal do cliente & tempo real**
+- **Portal do cliente** (acompanha o caso, recebe updates, envia documentos) —
+  **Supabase Auth/RLS**.
+- **Atendimentos e dashboard ao vivo** (**Supabase Realtime**).
+
+**Plataforma & confiança**
+- **Multi-inquilino em todas as tabelas + RLS** (hoje Cliente/Processo/Prazo são globais).
+- **LGPD por desenho**: consentimento, retenção, export/delete do titular.
+- **Observabilidade + feature flags + AI Gateway** (**Vercel**); **testes + CI**.
+- **Modo escuro, mobile/PWA, command palette** (ver seção 14).
+
+---
+
+## 16. Restrições que a V2 NÃO pode quebrar
 
 1. **IA sempre sinalizada + validação humana** — o produto é "a IA ajuda, o
    advogado decide". Nada protocola/envia sozinho sem aprovação.
